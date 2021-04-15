@@ -3,6 +3,23 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
+use smoltcp::phy::ChecksumCapabilities;
+use smoltcp::wire::IpAddress;
+use smoltcp::wire::IpCidr;
+use smoltcp::wire::{EthernetFrame, PrettyPrinter};
+use smoltcp::wire::{IpEndpoint, IpProtocol, IpRepr, UdpRepr};
+use std::str::FromStr;
+
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
+
+use pest::Parser;
+
+#[derive(Parser)]
+#[grammar = "packets-def.pest"]
+pub struct PacketsDefParser;
+
 /// This program does something useful, but its author needs to edit this.
 /// Else it will be just hanging around forever
 #[derive(Debug, Clone, Clap, Serialize, Deserialize)]
@@ -15,6 +32,10 @@ struct Opts {
     /// Override options from this yaml/json file
     #[clap(short, long)]
     options_override: Option<String>,
+
+    /// packet definition file
+    #[clap(short, long)]
+    input_filename: Option<String>,
 
     /// A level of verbosity, and can be used multiple times
     #[clap(short, long, parse(from_occurrences))]
@@ -49,6 +70,36 @@ fn main() {
     }
 
     println!("Hello, here is your options: {:#?}", &opts);
+    let udp_repr = UdpRepr {
+        src_port: 12345,
+        dst_port: 53,
+        payload: &[0xaa; 5],
+    };
+
+    let ip_repr = IpRepr::Unspecified {
+        src_addr: IpAddress::from_str("192.0.2.1").unwrap(),
+        dst_addr: IpAddress::from_str("192.0.2.2").unwrap(),
+        protocol: IpProtocol::Udp,
+        payload_len: udp_repr.buffer_len(),
+        hop_limit: 0x40,
+    };
+
+    let mut out: Vec<u8> = vec![0; 1000];
+
+    let ip_repr = ip_repr
+        .lower(&[IpCidr::new(IpAddress::from_str("192.0.2.1").unwrap(), 24)])
+        .unwrap();
+
+    ip_repr.emit(&mut out, &ChecksumCapabilities::ignored());
+
+    println!("IP: {:0x?}", &out);
+
+    if let Some(fname) = opts.input_filename {
+        if let Ok(data) = std::fs::read_to_string(&fname) {
+            let successful_parse = PacketsDefParser::parse(Rule::packets_def, &data);
+            println!("{:#?}", successful_parse);
+        }
+    }
 
     std::thread::sleep(std::time::Duration::from_secs(1));
 }
