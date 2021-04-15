@@ -8,20 +8,108 @@ Xpair = { string ~ ":" ~ value }
 
 array = {
     "[" ~ "]" |
-    "[" ~ value ~ ("," ~ value)* ~ "]"
+    "[" ~ value ~ ("," ~ value?)* ~ "]"
 }
 
-value = _{ tuple | array | string | number | boolean | null }
+testcase_array = {
+    "[" ~ "]" |
+    "[" ~ testcase ~ ("," ~ testcase?)* ~ "]"
+}
+
+testcase = {
+    "(" ~ string ~ "," ~ send_packet ~ "," ~ expect_packet ~ "," ~ expect_next_index ~ ")"
+}
+
+
+
+value = _{ tuple | array | sq_string | string | number | boolean | null | packet }
+
+send_packet = {
+  packet
+}
+
+expect_packet = {
+  packet
+}
+
+expect_next_index = {
+  number
+}
+
+packet = _{
+    packet_layer ~ ("/" ~ packet_layer)*
+}
+
+
+packet_layer = {
+   ip_layer | tcp_layer | udp_layer | raw_layer | geneve_layer | option_layer
+}
+
+ip_layer = {
+   "IP" ~ "(" ~ arg_list ~ ")"
+}
+
+tcp_layer = {
+   "TCP" ~ "(" ~ arg_list ~ ")"
+}
+
+udp_layer = {
+   "UDP" ~ "(" ~ arg_list ~ ")"
+}
+
+geneve_layer = {
+   "GENEVE" ~ "(" ~ arg_list ~ ")"
+}
+
+option_layer = {
+   "IPOption" ~ "(" ~ raw_arg ~ ")"
+}
+
+raw_layer = {
+   "Raw" ~ "(" ~ raw_arg ~ ")"
+}
+
+raw_arg = @{
+    raw_arg_char*
+}
+
+raw_arg_char = {
+    !(")") ~ ANY
+}
+
+
+arg_list = {
+   arg_pair ~ ("," ~ arg_pair)*
+}
+
+arg_pair = {
+    ident ~ "=" ~ value
+}
+
+ident = {
+   ASCII_ALPHA+
+}
 
 boolean = { "true" | "false" }
 
 null = { "null" }
 
 string = ${ "\"" ~ inner ~ "\"" }
+sq_string = ${ "'" ~ sq_inner ~ "'" }
+
 inner = @{ char* }
+
+sq_inner = @{ sq_char* }
+
 char = {
     !("\"" | "\\") ~ ANY
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+sq_char = {
+    !("'" | "\\") ~ ANY
+    | "\\" ~ ("'" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
@@ -32,5 +120,5 @@ number = @{
     ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
 }
 
-packets_def = _{ SOI ~ (tuple | array) ~ EOI }
+packets_def = _{ SOI ~ (testcase_array) ~ EOI }
 

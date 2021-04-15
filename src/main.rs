@@ -96,8 +96,25 @@ fn main() {
 
     if let Some(fname) = opts.input_filename {
         if let Ok(data) = std::fs::read_to_string(&fname) {
-            let successful_parse = PacketsDefParser::parse(Rule::packets_def, &data);
-            println!("{:#?}", successful_parse);
+            let mut pairs = PacketsDefParser::parse(Rule::packets_def, &data)
+                .unwrap_or_else(|e| panic!("{}", e));
+            println!("{:#?}", pairs);
+
+            let pairs = pairs.nth(0).unwrap().into_inner();
+
+            for pair in pairs {
+                // A pair is a combination of the rule which matched and a span of input
+                println!("Rule:    {:?}", pair.as_rule());
+                println!("Span:    {:?}", pair.as_span());
+                println!("Text:    {}", pair.as_str());
+
+                // A pair can be converted to an iterator of the tokens which make it up:
+                for inner_pair in pair.into_inner() {
+                    match inner_pair.as_rule() {
+                        x => println!("x: {:?}", x),
+                    };
+                }
+            }
         }
     }
 
