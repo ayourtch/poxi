@@ -7,12 +7,41 @@ extern crate syn;
 #[macro_use]
 extern crate quote;
 
-use proc_macro::TokenStream;
+// use proc_macro::TokenStream;
 use syn::Ident; // , VariantData};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Fields, GenericParam, Generics, Index};
+use syn::{
+    parse_macro_input, parse_quote, Data, DeriveInput, Fields, GenericParam, Generics, Index, Path,
+    Type,
+};
+
+struct StructField {
+    name: Ident,
+    conv: Ident,
+}
+
+use proc_macro2::{Punct, Spacing, Span, TokenTree};
+use quote::{ToTokens, TokenStreamExt};
+
+impl ToTokens for StructField {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.name.clone();
+        let conv = self.conv.clone();
+        let tk = quote! {
+                     match hm.entry(String::from(stringify!(#name))) {
+                         ::std::collections::hash_map::Entry::Occupied(occ_ent) => {
+                             // set the corresponding struct field to the value in
+                             // the corresponding hashmap if it contains it
+                             out.#name = #conv(occ_ent.get().as_str());
+                         },
+                         ::std::collections::hash_map::Entry::Vacant(_) => (),
+                     }
+        };
+        tokens.extend(tk);
+    }
+}
 
 #[proc_macro_derive(FromStringHashmap)]
-pub fn from_string_hashmap(input: TokenStream) -> TokenStream {
+pub fn from_string_hashmap(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
     // let ast = syn::parse_macro_input(&source).unwrap();
@@ -20,45 +49,28 @@ pub fn from_string_hashmap(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
-
     // create a vector containing the names of all fields on the struct
     let idents = struct_fields(&input.data);
 
     // contains quoted strings containing the struct fields in the same order as
     // the vector of idents.
     //
-    let mut keys = Vec::new();
-    let mut parsers = Vec::new();
-    for (ident, ident_parser) in idents.iter() {
-        keys.push(ident.clone());
-        parsers.push(ident_parser);
-    }
-
     let generics = add_trait_bounds(input.generics);
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    let tokens = quote! {
+    let mut tokens = quote! {
         impl #impl_generics FromStringHashmap<#name> for #name #ty_generics #where_clause {
             fn from_string_hashmap(mut hm: ::std::collections::HashMap<String, String>) -> #name {
                 // start with the default implementation
                 let mut out = #name::default();
                 #(
-                    match hm.entry(String::from(stringify!(#keys))) {
-                        ::std::collections::hash_map::Entry::Occupied(occ_ent) => {
-                            // set the corresponding struct field to the value in
-                            // the corresponding hashmap if it contains it
-                            out.#keys = #parsers(occ_ent.get().as_str());
-                        },
-                        ::std::collections::hash_map::Entry::Vacant(_) => (),
-                    }
+                    #idents;
                 )*
-
                 // return the modified struct
                 out
             }
         }
     };
-
 
     proc_macro::TokenStream::from(tokens)
 }
@@ -73,9 +85,13 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
     generics
 }
 
-
 // Generate an expression to sum up the heap size of each field.
-fn struct_fields(data: &Data) -> Vec<(Ident, Ident)> {
+fn struct_fields(data: &Data) -> Vec<StructField> {
+    fn path_is_option(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident == "Option"
+    }
 
     let mut out = vec![];
 
@@ -85,8 +101,23 @@ fn struct_fields(data: &Data) -> Vec<(Ident, Ident)> {
                 Fields::Named(ref fields) => {
                     for f in &fields.named {
                         let name = f.ident.clone().unwrap();
-                        //panic!("FIELD: {:#?}", f);
-                        out.push((name, format_ident!("parse_pair")));
+                        // panic!("FIELD: {:#?}", f.ty);
+                        match &f.ty {
+                            Type::Path(typepath)
+                                if typepath.qself.is_none() && path_is_option(&typepath.path) =>
+                            {
+                                out.push(StructField {
+                                    name,
+                                    conv: format_ident!("parse_pair_as_option"),
+                                });
+                            }
+                            _ => {
+                                out.push(StructField {
+                                    name,
+                                    conv: format_ident!("parse_pair"),
+                                });
+                            }
+                        }
                     }
                 }
                 Fields::Unnamed(ref fields) => {
@@ -102,15 +133,13 @@ fn struct_fields(data: &Data) -> Vec<(Ident, Ident)> {
                     });
                     */
                 }
-                Fields::Unit => {
-                }
+                Fields::Unit => {}
             }
         }
         Data::Enum(_) | Data::Union(_) => unimplemented!(),
     }
     out
 }
-
 
 #[test]
 fn test_fancy_repetition() {

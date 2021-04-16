@@ -24,10 +24,21 @@ where
     }
 }
 
+fn parse_pair_as_option<T>(v: &str) -> Option<T>
+where
+    T: FromStr,
+{
+    let res = v.parse::<T>();
+    match res {
+        Ok(val) => Some(val),
+        Err(_) => panic!("unable to parse"),
+    }
+}
+
 #[derive(FromStringHashmap, Default)]
 pub struct FunnyTest {
-    pub bar: Option<u32>,
     pub foo: u32,
+    pub bar: Option<u32>,
 }
 
 #[derive(Clone)]
