@@ -19,13 +19,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scarust"
-version = "0.1.0"
-dependencies = [
- "scarust-derive",
-]
-
-[[package]]
 name = "scarust-derive"
 version = "0.1.0"
 dependencies = [

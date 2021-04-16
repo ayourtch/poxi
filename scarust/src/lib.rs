@@ -1,9 +1,34 @@
 use std::any::Any;
 use std::any::TypeId;
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
 use std::net::Ipv4Addr;
 use std::ops::Div;
+use std::str::FromStr;
+#[macro_use]
+extern crate scarust_derive;
+
+pub trait FromStringHashmap<T>: Default {
+    fn from_string_hashmap(hm: HashMap<String, String>) -> T;
+}
+
+fn parse_pair<T>(v: &str) -> T
+where
+    T: FromStr,
+{
+    let res = v.parse::<T>();
+    match res {
+        Ok(val) => val,
+        Err(_) => panic!("unable to parse"),
+    }
+}
+
+#[derive(FromStringHashmap, Default)]
+pub struct FunnyTest {
+    pub bar: Option<u32>,
+    pub foo: u32,
+}
 
 #[derive(Clone)]
 pub struct LayerStack {
@@ -109,6 +134,24 @@ pub struct Ip {
     pub src: Ipv4Addr,
     pub dst: Ipv4Addr,
     pub options: Vec<IpOption>,
+}
+
+impl Ip {
+    pub fn version(&mut self, version: u8) -> Self {
+        let mut ip = self.clone();
+        ip.version = version;
+        ip
+    }
+    pub fn id(&mut self, id: u16) -> Self {
+        let mut ip = self.clone();
+        ip.id = id;
+        ip
+    }
+    pub fn src(&mut self, src: Ipv4Addr) -> Self {
+        let mut ip = self.clone();
+        ip.src = src;
+        ip
+    }
 }
 
 impl Default for Ip {
