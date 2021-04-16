@@ -35,6 +35,17 @@ where
     }
 }
 
+fn parse_pair_as_vec<T>(v: &str) -> Vec<T>
+where
+    T: FromStr,
+{
+    let res = v.parse::<T>();
+    match res {
+        Ok(val) => vec![val],
+        Err(_) => panic!("unable to parse"),
+    }
+}
+
 #[derive(FromStringHashmap, Default)]
 pub struct FunnyTest {
     pub foo: u32,
@@ -120,9 +131,19 @@ impl Layer for Udp {
     }
 }
 
+use std::num::ParseIntError;
+
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct IpFlags {
     // FIXME
+}
+
+impl FromStr for IpFlags {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(IpFlags {})
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -130,7 +151,15 @@ pub enum IpOption {
     NOP(),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+impl FromStr for IpOption {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(IpOption::NOP())
+    }
+}
+
+#[derive(FromStringHashmap, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {
     pub version: u8,
     pub ihl: Option<u8>,

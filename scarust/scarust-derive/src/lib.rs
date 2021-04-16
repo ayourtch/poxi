@@ -92,6 +92,11 @@ fn struct_fields(data: &Data) -> Vec<StructField> {
             && path.segments.len() == 1
             && path.segments.iter().next().unwrap().ident == "Option"
     }
+    fn path_is_vec(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident == "Vec"
+    }
 
     let mut out = vec![];
 
@@ -109,6 +114,14 @@ fn struct_fields(data: &Data) -> Vec<StructField> {
                                 out.push(StructField {
                                     name,
                                     conv: format_ident!("parse_pair_as_option"),
+                                });
+                            }
+                            Type::Path(typepath)
+                                if typepath.qself.is_none() && path_is_vec(&typepath.path) =>
+                            {
+                                out.push(StructField {
+                                    name,
+                                    conv: format_ident!("parse_pair_as_vec"),
                                 });
                             }
                             _ => {
