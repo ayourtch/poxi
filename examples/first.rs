@@ -42,9 +42,8 @@ macro_rules! IP {
 
 }
 
-use std::collections::HashMap;
 use scarust::FromStringHashmap;
-
+use std::collections::HashMap;
 
 fn main() {
     let ip = Ip::default();
@@ -66,10 +65,9 @@ fn main() {
     ip = Ip::from_string_hashmap(hip);
     println!("first ip {:#?}", &ip);
 
-
     let layers3 = IP!() / udp.clone();
 
-    let layers = ip.version(5).id(22).src([1, 1, 1, 1].into()) / udp.clone() / udp.clone();
+    let layers = ip.version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / udp.clone() / udp.clone();
     let layers2 = layers.clone();
 
     println!("{:#?}", &layers);

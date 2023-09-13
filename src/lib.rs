@@ -13,6 +13,22 @@ pub trait FromStringHashmap<T>: Default {
     fn from_string_hashmap(hm: HashMap<String, String>) -> T;
 }
 
+pub trait IntoIpv4Addr {
+    fn into_ipv4(self) -> std::net::Ipv4Addr;
+}
+
+impl IntoIpv4Addr for &str {
+    fn into_ipv4(self) -> std::net::Ipv4Addr {
+        self.parse().expect("Invalid IP address format")
+    }
+}
+
+impl IntoIpv4Addr for [u8; 4] {
+    fn into_ipv4(self) -> std::net::Ipv4Addr {
+        std::net::Ipv4Addr::new(self[0], self[1], self[2], self[3])
+    }
+}
+
 fn parse_pair<T>(v: &str) -> T
 where
     T: FromStr,
@@ -187,9 +203,14 @@ impl Ip {
         ip.id = id;
         ip
     }
-    pub fn src(&mut self, src: Ipv4Addr) -> Self {
+    pub fn src<IPv4: IntoIpv4Addr>(&mut self, src: IPv4) -> Self {
         let mut ip = self.clone();
-        ip.src = src;
+        ip.src = src.into_ipv4();
+        ip
+    }
+    pub fn dst<IPv4: IntoIpv4Addr>(&mut self, dst: IPv4) -> Self {
+        let mut ip = self.clone();
+        ip.dst = dst.into_ipv4();
         ip
     }
 }
