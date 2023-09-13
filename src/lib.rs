@@ -14,17 +14,17 @@ pub trait FromStringHashmap<T>: Default {
 }
 
 pub trait IntoIpv4Addr {
-    fn into_ipv4(self) -> std::net::Ipv4Addr;
+    fn into_ipv4addr(self) -> std::net::Ipv4Addr;
 }
 
 impl IntoIpv4Addr for &str {
-    fn into_ipv4(self) -> std::net::Ipv4Addr {
+    fn into_ipv4addr(self) -> std::net::Ipv4Addr {
         self.parse().expect("Invalid IP address format")
     }
 }
 
 impl IntoIpv4Addr for [u8; 4] {
-    fn into_ipv4(self) -> std::net::Ipv4Addr {
+    fn into_ipv4addr(self) -> std::net::Ipv4Addr {
         std::net::Ipv4Addr::new(self[0], self[1], self[2], self[3])
     }
 }
@@ -203,14 +203,16 @@ impl Ip {
         ip.id = id;
         ip
     }
-    pub fn src<IPv4: IntoIpv4Addr>(&mut self, src: IPv4) -> Self {
+    pub fn src<T_Ipv4Addr: IntoIpv4Addr>(&mut self, src: T_Ipv4Addr) -> Self {
+        let src = src.into_ipv4addr();
         let mut ip = self.clone();
-        ip.src = src.into_ipv4();
+        ip.src = src;
         ip
     }
-    pub fn dst<IPv4: IntoIpv4Addr>(&mut self, dst: IPv4) -> Self {
+    pub fn dst<T_Ipv4Addr: IntoIpv4Addr>(&mut self, dst: T_Ipv4Addr) -> Self {
+        let dst = dst.into_ipv4addr();
         let mut ip = self.clone();
-        ip.dst = dst.into_ipv4();
+        ip.dst = dst;
         ip
     }
 }
