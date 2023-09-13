@@ -97,7 +97,19 @@ impl Div<LayerStack> for LayerStack {
     }
 }
 
-pub trait Layer: Debug + Any {
+pub trait New {
+    fn new() -> Self
+    where
+        Self: Default;
+}
+
+impl<T: Default> New for T {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
+pub trait Layer: Debug + Any + New {
     fn embox(self) -> Box<dyn Layer>;
     fn box_clone(&self) -> Box<dyn Layer>;
     fn to_stack(self) -> LayerStack

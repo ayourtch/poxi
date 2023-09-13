@@ -1,6 +1,7 @@
 use scarust::Ip;
 use scarust::Layer;
 use scarust::LayerStack;
+use scarust::New;
 use scarust::Udp;
 use std::any::Any;
 use std::any::TypeId;
@@ -67,7 +68,8 @@ fn main() {
 
     let layers3 = IP!() / udp.clone();
 
-    let layers = ip.version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / udp.clone() / udp.clone();
+    let layers =
+        Ip::new().version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / Udp::new() / Udp::new();
     let layers2 = layers.clone();
 
     println!("{:#?}", &layers);
@@ -75,7 +77,6 @@ fn main() {
 
     let ip_type = TypeId::of::<Ip>();
     let udp_type = TypeId::of::<Udp>();
-
     for node in layers.layers {
         println!(
             "ip: {} udp: {}",
