@@ -107,6 +107,8 @@ fn main() {
     let downcast = new_ip.downcast_ref::<Ip>().unwrap();
     println!("Downcast: {:#?}", &downcast.src);
 
-    println!("Source: {:#?}", Ip::from_stack(&layers).src);
-    println!("UDP: {:#?}", Udp::from_stack(&layers).sport);
+    println!("Source: {:#?}", Ip::of(&layers).src);
+    println!("UDP: {:#?}", Udp::of(&layers).sport);
+
+    let x: &Udp = &layers[&UDP!() as &dyn Layer].downcast_ref().unwrap();
 }

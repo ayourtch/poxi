@@ -61,7 +61,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
         }
         impl #name {
-            pub fn from_stack(stack: &LayerStack) -> Self {
+            pub fn of(stack: &LayerStack) -> Self {
                 let res = &stack[TypeId::of::<Self>()];
                 res.downcast_ref::<Self>().unwrap().clone()
             }
