@@ -79,6 +79,7 @@ fn main() {
     let layers = IP!()
         .version(5)
         .id(22)
+        .ihl(Some(123))
         .src([1, 1, 1, 1])
         .dst("2.2.2.2")
         .options([NOP(), NOP(), SourceRoute(["1.1.1.1".into()].into())])
@@ -114,5 +115,4 @@ fn main() {
 
     let my_udp = &layers[UDP!()];
     let mut my_src_ip = layers[IP!()].src.clone();
-    my_src_ip = "1.1.1.1";
 }

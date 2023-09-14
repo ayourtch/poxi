@@ -12,6 +12,114 @@ use std::str::FromStr;
 #[macro_use]
 extern crate mopa;
 
+pub struct ParseNumberError;
+
+macro_rules! INT_TYPE {
+    ($TT:ident: $BT:ident) => {
+        #[derive(PartialEq, Clone, Eq)]
+        pub struct $TT($BT);
+
+        impl std::fmt::Debug for $TT {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(&format!("{:?}", &self.0))
+            }
+        }
+
+        impl Default for $TT {
+            fn default() -> Self {
+                $TT(0)
+            }
+        }
+
+        impl $TT {
+            pub fn new(val: $BT) -> Self {
+                $TT(val)
+            }
+        }
+
+        impl std::str::FromStr for $TT {
+            type Err = ParseNumberError;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let res = s.parse();
+                if res.is_err() {
+                    return Err(ParseNumberError);
+                }
+                Ok($TT(res.unwrap()))
+            }
+        }
+
+        impl From<$BT> for $TT {
+            fn from(v: $BT) -> Self {
+                $TT(v)
+            }
+        }
+
+        impl From<&str> for $TT {
+            fn from(s: &str) -> Self {
+                let res = s.parse().unwrap();
+                $TT(res)
+            }
+        }
+    };
+}
+
+INT_TYPE!(U16: u16);
+INT_TYPE!(U32: u32);
+INT_TYPE!(U8: u8);
+
+/*
+#[derive(PartialEq, Clone, Eq)]
+pub struct U16(u16);
+
+impl fmt::Debug for U16 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&format!("{:?}", &self.0))
+    }
+}
+
+impl Default for U16 {
+    fn default() -> Self {
+        U16(0)
+    }
+}
+
+impl U16 {
+    pub fn new(val: u16) -> Self {
+        U16(val)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseU16Error;
+
+impl FromStr for U16 {
+    type Err = ParseU16Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let res = s.parse();
+        if res.is_err() {
+            return Err(ParseU16Error);
+        }
+        Ok(U16(res.unwrap()))
+    }
+}
+
+impl From<u16> for U16 {
+    fn from(v: u16) -> Self {
+        U16(v)
+    }
+}
+
+
+impl From<&str> for U16 {
+    fn from(s: &str) -> Self {
+        let res = s.parse().unwrap();
+        U16(res)
+    }
+}
+*/
+
 #[derive(PartialEq, Clone, Eq)]
 pub struct Ipv4Address(std::net::Ipv4Addr);
 
@@ -295,8 +403,14 @@ pub struct Ip {
 }
 
 impl Ip {
-    pub fn version(mut self, version: u8) -> Self {
+    pub fn version<T: Into<u8>>(mut self, version: T) -> Self {
+        let version = version.into();
         self.version = version;
+        self
+    }
+    pub fn ihl<T: Into<Option<u8>>>(mut self, ihl: T) -> Self {
+        let ihl = ihl.into();
+        self.ihl = ihl;
         self
     }
     pub fn id(mut self, id: u16) -> Self {
