@@ -72,8 +72,11 @@ fn main() {
         Ip::new().version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / Udp::new() / Udp::new();
     let layers2 = layers.clone();
 
+    let layers4 = Ip::new() / Udp::new() / Ip::new();
+
     println!("{:#?}", &layers);
     println!("{:#?}", &layers3);
+    println!("{:#?}", &layers4);
 
     let ip_type = TypeId::of::<Ip>();
     let udp_type = TypeId::of::<Udp>();

@@ -252,9 +252,7 @@ impl Default for Ip {
 impl<T: Layer> Div<T> for Ip {
     type Output = LayerStack;
     fn div(mut self, rhs: T) -> Self::Output {
-        let mut out = LayerStack {
-            layers: vec![self.embox()],
-        };
+        let mut out = self.to_stack();
         out.layers.push(rhs.embox());
         out
     }
