@@ -1,11 +1,62 @@
 use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Debug;
 use std::net::Ipv4Addr;
 use std::ops::Div;
 use std::str::FromStr;
+
+#[derive(PartialEq, Clone, Eq)]
+pub struct Ipv4Address(std::net::Ipv4Addr);
+
+impl fmt::Debug for Ipv4Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&format!("{:?}", &self.0))
+    }
+}
+
+impl Default for Ipv4Address {
+    fn default() -> Self {
+        Ipv4Address(Ipv4Addr::new(0, 0, 0, 0))
+    }
+}
+
+impl Ipv4Address {
+    pub fn new(o1: u8, o2: u8, o3: u8, o4: u8) -> Self {
+        Ipv4Address(Ipv4Addr::new(o1, o2, o3, o4))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseIpv4AddressError;
+
+impl FromStr for Ipv4Address {
+    type Err = ParseIpv4AddressError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let res = s.parse();
+        if res.is_err() {
+            return Err(ParseIpv4AddressError);
+        }
+        Ok(Ipv4Address(res.unwrap()))
+    }
+}
+
+impl From<[u8; 4]> for Ipv4Address {
+    fn from(arg: [u8; 4]) -> Self {
+        Self::new(arg[0], arg[1], arg[2], arg[3])
+    }
+}
+
+impl From<&str> for Ipv4Address {
+    fn from(s: &str) -> Self {
+        let res = s.parse().unwrap();
+        Ipv4Address(res)
+    }
+}
+
 #[macro_use]
 extern crate scarust_derive;
 
@@ -13,19 +64,39 @@ pub trait FromStringHashmap<T>: Default {
     fn from_string_hashmap(hm: HashMap<String, String>) -> T;
 }
 
+pub trait ScarustInto<T>: Sized {
+    fn scarust_into(self) -> T;
+}
+
+impl<T, U> ScarustInto<U> for T
+where
+    U: From<T>,
+{
+    fn scarust_into(self) -> U {
+        U::from(self)
+    }
+}
+/*
+impl ScarustInto<Ipv4Addr> for &str {
+    fn scarust_into(self) -> Ipv4Addr {
+        self.parse().expect("Invalid IP address format")
+    }
+}
+*/
+
 pub trait IntoIpv4Addr {
-    fn into_ipv4addr(self) -> std::net::Ipv4Addr;
+    fn into_ipv4addr(self) -> Ipv4Address;
 }
 
 impl IntoIpv4Addr for &str {
-    fn into_ipv4addr(self) -> std::net::Ipv4Addr {
-        self.parse().expect("Invalid IP address format")
+    fn into_ipv4addr(self) -> Ipv4Address {
+        Ipv4Address(self.parse().expect("Invalid IP address format"))
     }
 }
 
 impl IntoIpv4Addr for [u8; 4] {
-    fn into_ipv4addr(self) -> std::net::Ipv4Addr {
-        std::net::Ipv4Addr::new(self[0], self[1], self[2], self[3])
+    fn into_ipv4addr(self) -> Ipv4Address {
+        Ipv4Address(std::net::Ipv4Addr::new(self[0], self[1], self[2], self[3]))
     }
 }
 
@@ -199,8 +270,8 @@ pub struct Ip {
     pub ttl: u8,
     pub proto: u8,
     pub chksum: Option<u16>,
-    pub src: Ipv4Addr,
-    pub dst: Ipv4Addr,
+    pub src: Ipv4Address,
+    pub dst: Ipv4Address,
     pub options: Vec<IpOption>,
 }
 
@@ -242,8 +313,8 @@ impl Default for Ip {
             ttl: 64,
             proto: 0, // hopopt
             chksum: None,
-            src: Ipv4Addr::new(127, 0, 0, 1),
-            dst: Ipv4Addr::new(127, 0, 0, 1),
+            src: Ipv4Address::new(127, 0, 0, 1),
+            dst: Ipv4Address::new(127, 0, 0, 1),
             options: vec![],
         }
     }

@@ -2,11 +2,13 @@ use scarust::Ip;
 use scarust::Layer;
 use scarust::LayerStack;
 use scarust::New;
+use scarust::ScarustInto;
 use scarust::Udp;
 use scarust::IP;
 use scarust::UDP;
 use std::any::Any;
 use std::any::TypeId;
+use std::convert::TryFrom;
 
 /*
 macro_rules! IP {
@@ -54,12 +56,7 @@ fn main() {
     let ip = Ip::default();
     let udp = Udp::default();
 
-    let mut ip = IP!(
-        src = [1, 1, 1, 1],
-        dst = [2, 2, 2, 22],
-        id = 12u16,
-        ttl = 32
-    );
+    let mut ip = IP!(src = "1.1.1.1", dst = [2, 2, 2, 22], id = 12u16, ttl = 32);
 
     let mut hip: HashMap<String, String> = HashMap::new();
 
@@ -72,11 +69,10 @@ fn main() {
 
     let layers3 = IP!() / udp.clone();
 
-    let layers =
-        Ip::new().version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / Udp::new() / Udp::new();
+    let layers = IP!().version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / Udp::new() / Udp::new();
     let layers2 = layers.clone();
 
-    let layers4 = UDP!() / Ip::new();
+    let layers4 = UDP!() / IP!();
 
     println!("{:#?}", &layers);
     println!("{:#?}", &layers3);
