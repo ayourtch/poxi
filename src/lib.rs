@@ -221,15 +221,6 @@ pub struct Udp {
     pub chksum: Option<u16>,
 }
 
-impl Layer for Udp {
-    fn embox(self) -> Box<dyn Layer> {
-        Box::new(self)
-    }
-    fn box_clone(&self) -> Box<dyn Layer> {
-        Box::new((*self).clone())
-    }
-}
-
 use std::num::ParseIntError;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -317,15 +308,6 @@ impl Default for Ip {
             dst: Ipv4Address::new(127, 0, 0, 1),
             options: vec![],
         }
-    }
-}
-
-impl Layer for Ip {
-    fn embox(self) -> Box<dyn Layer> {
-        Box::new(self)
-    }
-    fn box_clone(&self) -> Box<dyn Layer> {
-        Box::new((*self).clone())
     }
 }
 

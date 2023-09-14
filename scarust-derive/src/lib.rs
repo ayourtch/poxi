@@ -61,6 +61,16 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
         }
 
+        impl Layer for #name {
+            fn embox(self) -> Box<dyn Layer> {
+                Box::new(self)
+            }
+            fn box_clone(&self) -> Box<dyn Layer> {
+                Box::new((*self).clone())
+            }
+        }
+
+
         #[macro_export]
         macro_rules! #macroname {
             () => {{
