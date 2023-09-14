@@ -213,7 +213,7 @@ impl <'a> Eq for LayerStack<'a> {
 }
 */
 
-#[derive(LayerDiv, Clone, Debug, Eq, PartialEq, Default)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Udp {
     pub sport: u16,
     pub dport: u16,
@@ -258,7 +258,7 @@ impl FromStr for IpOption {
     }
 }
 
-#[derive(FromStringHashmap, LayerDiv, Clone, Debug, Eq, PartialEq)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {
     pub version: u8,
     pub ihl: Option<u8>,

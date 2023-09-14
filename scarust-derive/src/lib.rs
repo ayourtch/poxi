@@ -40,8 +40,8 @@ impl ToTokens for StructField {
     }
 }
 
-#[proc_macro_derive(LayerDiv)]
-pub fn layer_div(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(NetworkProtocol)]
+pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
     // let ast = syn::parse_macro_input(&source).unwrap();
