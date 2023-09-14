@@ -113,5 +113,6 @@ fn main() {
     let x: &Udp = &layers[&UDP!() as &dyn Layer].downcast_ref().unwrap();
 
     let my_udp = &layers[UDP!()];
-    let my_src_ip = &layers[IP!()].src;
+    let mut my_src_ip = layers[IP!()].src.clone();
+    my_src_ip = "1.1.1.1";
 }

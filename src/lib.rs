@@ -5,6 +5,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Debug;
 use std::net::Ipv4Addr;
+use std::ops::Deref;
 use std::ops::Div;
 use std::ops::Index;
 use std::str::FromStr;
@@ -31,6 +32,16 @@ impl Ipv4Address {
         Ipv4Address(Ipv4Addr::new(o1, o2, o3, o4))
     }
 }
+
+/*
+impl Deref for Ipv4Address {
+    type Target = Ipv4Addr;
+
+    fn deref(&self) -> &Ipv4Addr {
+        &self.0
+    }
+}
+*/
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseIpv4AddressError;
@@ -130,7 +141,10 @@ impl Index<TypeId> for LayerStack {
     }
 }
 
-impl<T> Index<T> for LayerStack where T: Layer {
+impl<T> Index<T> for LayerStack
+where
+    T: Layer,
+{
     type Output = T;
     fn index(&self, typ: T) -> &Self::Output {
         for ref layer in &self.layers {
@@ -140,7 +154,6 @@ impl<T> Index<T> for LayerStack where T: Layer {
         }
         panic!("Layer not found");
     }
-
 }
 
 impl Index<&dyn Layer> for LayerStack {
