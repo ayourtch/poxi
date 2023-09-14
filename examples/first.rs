@@ -49,13 +49,20 @@ macro_rules! IP {
 */
 
 use scarust::FromStringHashmap;
+use scarust::IpOption::*;
 use std::collections::HashMap;
 
 fn main() {
     let ip = Ip::default();
     let udp = Udp::default();
 
-    let mut ip = IP!(src = "1.1.1.1", dst = [2, 2, 2, 22], id = 12, ttl = 32);
+    let mut ip = IP!(
+        src = "1.1.1.1",
+        dst = [2, 2, 2, 22],
+        id = 12,
+        ttl = 32,
+        options = [NOP(), NOP(), NOP()]
+    );
 
     let mut hip: HashMap<String, String> = HashMap::new();
 
@@ -68,7 +75,14 @@ fn main() {
 
     let layers3 = IP!() / udp.clone();
 
-    let layers = IP!().version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / Udp::new() / Udp::new();
+    let layers = IP!()
+        .version(5)
+        .id(22)
+        .src([1, 1, 1, 1])
+        .dst("2.2.2.2")
+        .options([NOP(), NOP(), SourceRoute(["1.1.1.1".into()].into())])
+        / Udp::new()
+        / Udp::new();
     let layers2 = layers.clone();
 
     let layers4 = UDP!() / IP!();

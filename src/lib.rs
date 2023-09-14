@@ -203,6 +203,7 @@ impl FromStr for IpFlags {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IpOption {
     NOP(),
+    SourceRoute(Vec<Ipv4Address>),
 }
 
 impl FromStr for IpOption {
@@ -247,6 +248,11 @@ impl Ip {
     pub fn dst<T: Into<Ipv4Address>>(mut self, dst: T) -> Self {
         let dst = dst.into();
         self.dst = dst;
+        self
+    }
+    pub fn options<T: Into<Vec<IpOption>>>(mut self, options: T) -> Self {
+        let options = options.into();
+        self.options = options;
         self
     }
 }
