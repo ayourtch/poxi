@@ -2,7 +2,6 @@ use scarust::Ip;
 use scarust::Layer;
 use scarust::LayerStack;
 use scarust::New;
-use scarust::ScarustInto;
 use scarust::Udp;
 use scarust::IP;
 use scarust::UDP;

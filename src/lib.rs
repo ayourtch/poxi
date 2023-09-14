@@ -64,42 +64,6 @@ pub trait FromStringHashmap<T>: Default {
     fn from_string_hashmap(hm: HashMap<String, String>) -> T;
 }
 
-pub trait ScarustInto<T>: Sized {
-    fn scarust_into(self) -> T;
-}
-
-impl<T, U> ScarustInto<U> for T
-where
-    U: From<T>,
-{
-    fn scarust_into(self) -> U {
-        U::from(self)
-    }
-}
-/*
-impl ScarustInto<Ipv4Addr> for &str {
-    fn scarust_into(self) -> Ipv4Addr {
-        self.parse().expect("Invalid IP address format")
-    }
-}
-*/
-
-pub trait IntoIpv4Addr {
-    fn into_ipv4addr(self) -> Ipv4Address;
-}
-
-impl IntoIpv4Addr for &str {
-    fn into_ipv4addr(self) -> Ipv4Address {
-        Ipv4Address(self.parse().expect("Invalid IP address format"))
-    }
-}
-
-impl IntoIpv4Addr for [u8; 4] {
-    fn into_ipv4addr(self) -> Ipv4Address {
-        Ipv4Address(std::net::Ipv4Addr::new(self[0], self[1], self[2], self[3]))
-    }
-}
-
 fn parse_pair<T>(v: &str) -> T
 where
     T: FromStr,
@@ -273,18 +237,19 @@ impl Ip {
         ip
     }
     pub fn id(&mut self, id: u16) -> Self {
+        let id = id.into();
         let mut ip = self.clone();
         ip.id = id;
         ip
     }
-    pub fn src<T_Ipv4Addr: IntoIpv4Addr>(&mut self, src: T_Ipv4Addr) -> Self {
-        let src = src.into_ipv4addr();
+    pub fn src<T: Into<Ipv4Address>>(&mut self, src: T) -> Self {
+        let src = src.into();
         let mut ip = self.clone();
         ip.src = src;
         ip
     }
-    pub fn dst<T_Ipv4Addr: IntoIpv4Addr>(&mut self, dst: T_Ipv4Addr) -> Self {
-        let dst = dst.into_ipv4addr();
+    pub fn dst<T: Into<Ipv4Address>>(&mut self, dst: T) -> Self {
+        let dst = dst.into();
         let mut ip = self.clone();
         ip.dst = dst;
         ip
