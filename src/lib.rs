@@ -1,4 +1,4 @@
-use std::any::Any;
+//use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -8,6 +8,8 @@ use std::net::Ipv4Addr;
 use std::ops::Div;
 use std::ops::Index;
 use std::str::FromStr;
+#[macro_use]
+extern crate mopa;
 
 #[derive(PartialEq, Clone, Eq)]
 pub struct Ipv4Address(std::net::Ipv4Addr);
@@ -158,7 +160,7 @@ impl<T: Default> New for T {
     }
 }
 
-pub trait Layer: Debug + std::any::Any + New {
+pub trait Layer: Debug + mopa::Any + New {
     fn embox(self) -> Box<dyn Layer>;
     fn box_clone(&self) -> Box<dyn Layer>;
     fn to_stack(self) -> LayerStack
@@ -173,6 +175,8 @@ pub trait Layer: Debug + std::any::Any + New {
         self.type_id() == x
     }
 }
+
+mopafy!(Layer);
 
 impl Clone for Box<dyn Layer> {
     fn clone(&self) -> Box<dyn Layer> {

@@ -104,4 +104,6 @@ fn main() {
 
     let new_ip = &layers[ip_type];
     println!("IP: {:#?}, {}", &new_ip, new_ip.type_id_is(ip_type));
+    let downcast = new_ip.downcast_ref::<Ip>().unwrap();
+    println!("Downcast: {:#?}", &downcast.src);
 }
