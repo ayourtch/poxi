@@ -111,6 +111,12 @@ pub struct LayerStack {
     pub layers: Vec<Box<dyn Layer>>,
 }
 
+impl LayerStack {
+    pub fn g<T: Layer>(&self, idx: T) -> &T {
+        self[TypeId::of::<T>()].downcast_ref().unwrap()
+    }
+}
+
 impl Index<TypeId> for LayerStack {
     type Output = Box<dyn Layer>;
 
@@ -122,6 +128,19 @@ impl Index<TypeId> for LayerStack {
         }
         panic!("Layer not found");
     }
+}
+
+impl<T> Index<T> for LayerStack where T: Layer {
+    type Output = T;
+    fn index(&self, typ: T) -> &Self::Output {
+        for ref layer in &self.layers {
+            if layer.type_id_is(typ.type_id()) {
+                return layer.clone().downcast_ref().unwrap();
+            }
+        }
+        panic!("Layer not found");
+    }
+
 }
 
 impl Index<&dyn Layer> for LayerStack {
