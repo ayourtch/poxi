@@ -14,12 +14,21 @@ use syn::{
     Type,
 };
 
+#[derive(Debug)]
 struct StructField {
     name: Ident,
     conv: Ident,
 }
 
-use proc_macro2::{Punct, Spacing, Span, TokenTree};
+#[derive(Debug)]
+struct NetprotoStructField {
+    name: Ident,
+    conv: Ident,
+    add_conversion: bool,
+    ty: TokenStream,
+}
+
+use proc_macro2::{Punct, Spacing, Span, TokenTree, TokenStream};
 use quote::{ToTokens, TokenStreamExt};
 
 impl ToTokens for StructField {
@@ -40,6 +49,32 @@ impl ToTokens for StructField {
     }
 }
 
+impl ToTokens for NetprotoStructField {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.name.clone();
+        let conv = self.conv.clone();
+        let typ = self.ty.clone();
+
+        let tk = if self.add_conversion {
+            quote! {
+                     pub fn #name<T: Into<#typ>>(mut self, #name: T) -> Self {
+                         let #name = #name.into();
+                         self.#name = #name;
+                         self
+                     }
+            } 
+        } else {
+            quote! {
+                     pub fn #name(mut self, #name: #typ) -> Self {
+                         self.#name = #name;
+                         self
+                     }
+            } 
+        };
+        tokens.extend(tk);
+    }
+}
+
 #[proc_macro_derive(NetworkProtocol)]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // let source = input.to_string();
@@ -50,6 +85,8 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let name = input.ident;
     let macroname = Ident::new(&format!("{}", &name).to_uppercase(), Span::call_site());
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
+
+    let idents = netproto_struct_fields(&input.data);
 
     let mut tokens = quote! {
         impl<T: Layer> Div<T> for #name {
@@ -65,6 +102,11 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 let res = &stack[TypeId::of::<Self>()];
                 res.downcast_ref::<Self>().unwrap().clone()
             }
+
+            #(
+                    #idents
+            )*
+
         }
 
         impl Layer for #name {
@@ -156,6 +198,7 @@ pub fn from_string_hashmap(input: proc_macro::TokenStream) -> proc_macro::TokenS
             }
         }
     };
+    eprintln!("{}", &tokens.to_string());
 
     proc_macro::TokenStream::from(tokens)
 }
@@ -214,6 +257,89 @@ fn struct_fields(data: &Data) -> Vec<StructField> {
                                     name,
                                     conv: format_ident!("parse_pair"),
                                 });
+                            }
+                        }
+                    }
+                }
+                Fields::Unnamed(ref fields) => {
+                    // Expands to an expression like
+                    //
+                    //     0 + self.0.heap_size() + self.1.heap_size() + self.2.heap_size()
+                    /*
+                    let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                        let index = Index::from(i);
+                        quote_spanned! {f.span()=>
+                            heapsize::HeapSize::heap_size_of_children(&self.#index)
+                        }
+                    });
+                    */
+                }
+                Fields::Unit => {}
+            }
+        }
+        Data::Enum(_) | Data::Union(_) => unimplemented!(),
+    }
+    out
+}
+
+fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
+    fn path_is_option(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident == "Option"
+    }
+    fn path_is_vec(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident == "Vec"
+    }
+
+    fn path_is_int(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident.to_string().starts_with("u")
+    }
+
+    let mut out = vec![];
+
+    match *data {
+        Data::Struct(ref data) => {
+            match data.fields {
+                Fields::Named(ref fields) => {
+                    for f in &fields.named {
+                        let name = f.ident.clone().unwrap();
+                        // eprintln!("FIELD: {:#?}", f.ty);
+                        match &f.ty {
+                            Type::Path(typepath)
+                                if typepath.qself.is_none() && path_is_option(&typepath.path) =>
+                            {
+                                out.push(NetprotoStructField {
+                                    name,
+                                    conv: format_ident!("parse_pair_as_option"),
+                                    add_conversion: !path_is_int(&typepath.path),
+                                    ty: typepath.path.clone().to_token_stream(),
+                                });
+                            }
+                            Type::Path(typepath)
+                                if typepath.qself.is_none() && path_is_vec(&typepath.path) =>
+                            {
+                                out.push(NetprotoStructField {
+                                    name,
+                                    conv: format_ident!("parse_pair_as_vec"),
+                                    add_conversion: !path_is_int(&typepath.path),
+                                    ty: typepath.path.clone().to_token_stream(),
+                                });
+                            }
+                            Type::Path(typepath) => {
+                                out.push(NetprotoStructField {
+                                    name,
+                                    conv: format_ident!("parse_pair"),
+                                    add_conversion: !path_is_int(&typepath.path),
+                                    ty: typepath.path.clone().to_token_stream(),
+                                });
+                            },
+                            _ => {
+                                panic!("todo!");
                             }
                         }
                     }

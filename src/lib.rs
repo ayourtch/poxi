@@ -403,6 +403,7 @@ pub struct Ip {
 }
 
 impl Ip {
+    /*
     pub fn version<T: Into<u8>>(mut self, version: T) -> Self {
         let version = version.into();
         self.version = version;
@@ -432,6 +433,7 @@ impl Ip {
         self.options = options;
         self
     }
+    */
 }
 
 impl Default for Ip {
