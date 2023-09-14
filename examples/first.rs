@@ -7,6 +7,7 @@ use scarust::IP;
 use scarust::UDP;
 use std::any::Any;
 use std::any::TypeId;
+use std::boxed::Box;
 use std::convert::TryFrom;
 
 /*
@@ -93,11 +94,14 @@ fn main() {
 
     let ip_type = TypeId::of::<Ip>();
     let udp_type = TypeId::of::<Udp>();
-    for node in layers.layers {
+    for node in &layers.layers {
         println!(
             "ip: {} udp: {}",
             node.type_id_is(ip_type),
             node.type_id_is(udp_type)
         );
     }
+
+    let new_ip = &layers[ip_type];
+    println!("IP: {:#?}, {}", &new_ip, new_ip.type_id_is(ip_type));
 }

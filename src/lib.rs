@@ -6,6 +6,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::net::Ipv4Addr;
 use std::ops::Div;
+use std::ops::Index;
 use std::str::FromStr;
 
 #[derive(PartialEq, Clone, Eq)]
@@ -108,6 +109,19 @@ pub struct LayerStack {
     pub layers: Vec<Box<dyn Layer>>,
 }
 
+impl Index<TypeId> for LayerStack {
+    type Output = Box<dyn Layer>;
+
+    fn index(&self, type_id: TypeId) -> &Self::Output {
+        for ref layer in &self.layers {
+            if layer.type_id_is(type_id) {
+                return layer.clone();
+            }
+        }
+        panic!("Layer not found");
+    }
+}
+
 impl fmt::Debug for LayerStack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.layers.iter()).finish()
@@ -144,7 +158,7 @@ impl<T: Default> New for T {
     }
 }
 
-pub trait Layer: Debug + Any + New {
+pub trait Layer: Debug + std::any::Any + New {
     fn embox(self) -> Box<dyn Layer>;
     fn box_clone(&self) -> Box<dyn Layer>;
     fn to_stack(self) -> LayerStack
