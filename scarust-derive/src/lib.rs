@@ -40,6 +40,32 @@ impl ToTokens for StructField {
     }
 }
 
+#[proc_macro_derive(LayerDiv)]
+pub fn layer_div(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    // let source = input.to_string();
+    // Parse the string representation into a syntax tree
+    // let ast = syn::parse_macro_input(&source).unwrap();
+    //
+    let input = syn::parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+
+    let mut tokens = quote! {
+        impl<T: Layer> Div<T> for #name {
+            type Output = LayerStack;
+            fn div(mut self, rhs: T) -> Self::Output {
+                let mut out = self.to_stack();
+                out.layers.push(rhs.embox());
+                out
+            }
+        }
+    };
+
+    proc_macro::TokenStream::from(tokens)
+}
+
+
+
+
 #[proc_macro_derive(FromStringHashmap)]
 pub fn from_string_hashmap(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // let source = input.to_string();

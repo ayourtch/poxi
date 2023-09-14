@@ -142,7 +142,7 @@ impl <'a> Eq for LayerStack<'a> {
 }
 */
 
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(LayerDiv, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Udp {
     pub sport: u16,
     pub dport: u16,
@@ -187,7 +187,7 @@ impl FromStr for IpOption {
     }
 }
 
-#[derive(FromStringHashmap, Clone, Debug, Eq, PartialEq)]
+#[derive(FromStringHashmap, LayerDiv, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {
     pub version: u8,
     pub ihl: Option<u8>,
@@ -246,15 +246,6 @@ impl Default for Ip {
             dst: Ipv4Addr::new(127, 0, 0, 1),
             options: vec![],
         }
-    }
-}
-
-impl<T: Layer> Div<T> for Ip {
-    type Output = LayerStack;
-    fn div(mut self, rhs: T) -> Self::Output {
-        let mut out = self.to_stack();
-        out.layers.push(rhs.embox());
-        out
     }
 }
 
