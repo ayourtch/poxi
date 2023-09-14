@@ -231,28 +231,23 @@ pub struct Ip {
 }
 
 impl Ip {
-    pub fn version(&mut self, version: u8) -> Self {
-        let mut ip = self.clone();
-        ip.version = version;
-        ip
+    pub fn version(mut self, version: u8) -> Self {
+        self.version = version;
+        self
     }
-    pub fn id(&mut self, id: u16) -> Self {
-        let id = id.into();
-        let mut ip = self.clone();
-        ip.id = id;
-        ip
+    pub fn id(mut self, id: u16) -> Self {
+        self.id = id;
+        self
     }
-    pub fn src<T: Into<Ipv4Address>>(&mut self, src: T) -> Self {
+    pub fn src<T: Into<Ipv4Address>>(mut self, src: T) -> Self {
         let src = src.into();
-        let mut ip = self.clone();
-        ip.src = src;
-        ip
+        self.src = src;
+        self
     }
-    pub fn dst<T: Into<Ipv4Address>>(&mut self, dst: T) -> Self {
+    pub fn dst<T: Into<Ipv4Address>>(mut self, dst: T) -> Self {
         let dst = dst.into();
-        let mut ip = self.clone();
-        ip.dst = dst;
-        ip
+        self.dst = dst;
+        self
     }
 }
 
