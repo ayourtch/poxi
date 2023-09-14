@@ -60,6 +60,12 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 out
             }
         }
+        impl #name {
+            pub fn from_stack(stack: &LayerStack) -> Self {
+                let res = &stack[TypeId::of::<Self>()];
+                res.downcast_ref::<Self>().unwrap().clone()
+            }
+        }
 
         impl Layer for #name {
             fn embox(self) -> Box<dyn Layer> {

@@ -106,4 +106,7 @@ fn main() {
     println!("IP: {:#?}, {}", &new_ip, new_ip.type_id_is(ip_type));
     let downcast = new_ip.downcast_ref::<Ip>().unwrap();
     println!("Downcast: {:#?}", &downcast.src);
+
+    println!("Source: {:#?}", Ip::from_stack(&layers).src);
+    println!("UDP: {:#?}", Udp::from_stack(&layers).sport);
 }
