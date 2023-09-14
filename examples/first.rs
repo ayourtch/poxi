@@ -3,9 +3,12 @@ use scarust::Layer;
 use scarust::LayerStack;
 use scarust::New;
 use scarust::Udp;
+use scarust::IP;
+use scarust::UDP;
 use std::any::Any;
 use std::any::TypeId;
 
+/*
 macro_rules! IP {
     () => {{
         {
@@ -40,8 +43,9 @@ macro_rules! IP {
             ip
         }
     }};
-
 }
+
+*/
 
 use scarust::FromStringHashmap;
 use std::collections::HashMap;
@@ -72,7 +76,7 @@ fn main() {
         Ip::new().version(5).id(22).src([1, 1, 1, 1]).dst("2.2.2.2") / Udp::new() / Udp::new();
     let layers2 = layers.clone();
 
-    let layers4 = Udp::new() / Ip::new();
+    let layers4 = UDP!() / Ip::new();
 
     println!("{:#?}", &layers);
     println!("{:#?}", &layers3);

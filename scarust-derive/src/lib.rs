@@ -48,6 +48,8 @@ pub fn layer_div(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     //
     let input = syn::parse_macro_input!(input as DeriveInput);
     let name = input.ident;
+    let macroname = Ident::new(&format!("{}", &name).to_uppercase(), Span::call_site());
+    let varname = Ident::new(&format!("__{}", &name), Span::call_site());
 
     let mut tokens = quote! {
         impl<T: Layer> Div<T> for #name {
@@ -58,7 +60,48 @@ pub fn layer_div(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 out
             }
         }
+
+        #[macro_export]
+        macro_rules! #macroname {
+            () => {{
+                {
+                    let mut #varname: #name = Default::default();
+                    #varname
+                }
+            }};
+
+            ($ip:ident, $ident:ident=$e:expr) => {{
+                {
+                    $ip.$ident = $e.into();
+                }
+            }};
+            ($ip: ident, $ident:ident=$e:expr, $($x_ident:ident=$es:expr),+) => {{
+                {
+                    #macroname!($ip, $ident=$e);
+                    #macroname!($ip, $($x_ident=$es),+);
+                }
+            }};
+
+            ($ident:ident=$e:expr) => {{
+                {
+                    let mut #varname: #name = Default::default();
+                    #macroname!(#varname, $ident=$e);
+                    #varname
+                }
+            }};
+            ($ident:ident=$e:expr, $($s_ident:ident=$es:expr),+) => {{
+                {
+                    let mut #varname = #macroname!($ident=$e);
+                    #macroname!(#varname, $($s_ident=$es),+);
+                    #varname
+                }
+            }};
+
+        }
+
+
     };
+    eprintln!("{}", tokens.to_string());
 
     proc_macro::TokenStream::from(tokens)
 }
