@@ -55,7 +55,7 @@ fn main() {
     let ip = Ip::default();
     let udp = Udp::default();
 
-    let mut ip = IP!(src = "1.1.1.1", dst = [2, 2, 2, 22], id = 12u16, ttl = 32);
+    let mut ip = IP!(src = "1.1.1.1", dst = [2, 2, 2, 22], id = 12, ttl = 32);
 
     let mut hip: HashMap<String, String> = HashMap::new();
 

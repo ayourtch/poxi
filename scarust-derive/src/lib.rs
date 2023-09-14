@@ -82,7 +82,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
             ($ip:ident, $ident:ident=$e:expr) => {{
                 {
-                    $ip.$ident = $e.into();
+                    $ip.$ident = TryFrom::try_from($e).unwrap();
                 }
             }};
             ($ip: ident, $ident:ident=$e:expr, $($x_ident:ident=$es:expr),+) => {{
