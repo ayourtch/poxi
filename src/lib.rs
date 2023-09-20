@@ -264,19 +264,6 @@ where
     }
 }
 
-impl Index<&dyn Layer> for LayerStack {
-    type Output = Box<dyn Layer>;
-
-    fn index(&self, typ: &dyn Layer) -> &Self::Output {
-        for ref layer in &self.layers {
-            if layer.type_id_is(typ.type_id()) {
-                return layer.clone();
-            }
-        }
-        panic!("Layer not found");
-    }
-}
-
 impl fmt::Debug for LayerStack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.layers.iter()).finish()

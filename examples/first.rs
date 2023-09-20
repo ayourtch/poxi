@@ -111,8 +111,6 @@ fn main() {
     println!("Source: {:#?}", Ip::of(&layers).src);
     println!("UDP: {:#?}", Udp::of(&layers).sport);
 
-    let x: &Udp = &layers[&UDP!() as &dyn Layer].downcast_ref().unwrap();
-
     let my_udp = &layers[UDP!()];
     let mut my_src_ip = layers[IP!()].src.clone();
 }
