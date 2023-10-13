@@ -235,8 +235,8 @@ impl LayerStack {
         self[TypeId::of::<T>()].downcast_ref().unwrap()
     }
 
-    pub fn item_at<T: Layer>(&self, item: T, idx: usize) -> &T {
-        self.layers[idx].downcast_ref().unwrap()
+    pub fn item_at<T: Layer>(&self, item: T, idx: usize) -> Option<&T> {
+        self.layers[idx].downcast_ref()
     }
 
     pub fn items_of<T: Layer>(&self, item: T) -> Vec<&T> {
@@ -253,6 +253,14 @@ impl LayerStack {
         let mut out: Vec<u8> = vec![];
         for (i, ll) in (&self.layers).into_iter().enumerate() {
             out.append(&mut ll.encode(&self, i));
+        }
+        out
+    }
+
+    pub fn fill(&self) -> LayerStack {
+        let mut out = LayerStack { layers: vec![] };
+        for (i, ll) in (&self.layers).into_iter().enumerate() {
+            ll.fill(&self, i, &mut out);
         }
         out
     }
@@ -346,6 +354,8 @@ pub trait Layer: Debug + mopa::Any + New {
     fn type_id_is(&self, x: TypeId) -> bool {
         self.type_id() == x
     }
+    /* fill the unknown fields based on the entire stack contents */
+    fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack);
     fn encode(&self, stack: &LayerStack, my_index: usize) -> Vec<u8>;
 }
 

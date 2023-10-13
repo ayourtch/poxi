@@ -91,17 +91,32 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
     let idents = netproto_struct_fields(&input.data);
 
+    let ayprepare = match name.to_string().as_str() {
+        "Udp" => quote! {
+            let mut out = self.clone();
+            if self.chksum.is_none() {
+                let mut csum = 3;
+                if my_index > 0 {
+                    if let Some(ip) = (*stack).item_at(IP!(), my_index - 1) {
+                        csum = ip.ttl;
+                    }
+                }
+                out.chksum = Some(csum as u16);
+            }
+            out_stack.layers.push(Box::new(out))
+        },
+        x => quote! {
+            out_stack.layers.push(Box::new(self.clone()))
+        },
+    };
+
     let ayproto = match name.to_string().as_str() {
         "Ip" => quote! {
             vec![4]
         },
         "Udp" => quote! {
-            let ips = (*stack).items_of(IP!());
             let mut out = vec![];
-            if ips.len() > 0 {
-                let x = ips[0].ttl;
-                out.push(x);
-            }
+            out.push((self.chksum.unwrap() & 0xff) as u8);
             out.push(22);
             out
         },
@@ -138,6 +153,9 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
             fn box_clone(&self) -> Box<dyn Layer> {
                 Box::new((*self).clone())
+            }
+            fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack) {
+                #ayprepare
             }
             fn encode(&self, stack: &LayerStack, my_index: usize) -> Vec<u8> {
                 #ayproto 
