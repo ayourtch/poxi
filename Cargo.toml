@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 scarust-derive = { path = "scarust-derive" }
 mopa = "*"
-
+mac_address = "*"

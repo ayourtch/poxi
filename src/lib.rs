@@ -11,6 +11,7 @@ use std::ops::Index;
 use std::str::FromStr;
 #[macro_use]
 extern crate mopa;
+extern crate mac_address;
 
 pub struct ParseNumberError;
 
@@ -119,6 +120,54 @@ impl From<&str> for U16 {
     }
 }
 */
+#[derive(PartialEq, Clone, Eq)]
+pub struct MacAddr(mac_address::MacAddress);
+
+impl fmt::Debug for MacAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&format!("{:?}", &self.0))
+    }
+}
+
+impl Default for MacAddr {
+    fn default() -> Self {
+        MacAddr(mac_address::MacAddress::new([0, 0, 0, 0, 0, 0]))
+    }
+}
+
+impl MacAddr {
+    pub fn new(o1: u8, o2: u8, o3: u8, o4: u8, o5: u8, o6: u8) -> Self {
+        MacAddr(mac_address::MacAddress::new([o1, o2, o3, o4, o5, o6]))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseMacAddrError;
+
+impl FromStr for MacAddr {
+    type Err = ParseMacAddrError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let res = s.parse();
+        if res.is_err() {
+            return Err(ParseMacAddrError);
+        }
+        Ok(MacAddr(res.unwrap()))
+    }
+}
+
+impl From<[u8; 6]> for MacAddr {
+    fn from(arg: [u8; 6]) -> Self {
+        Self::new(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5])
+    }
+}
+
+impl From<&str> for MacAddr {
+    fn from(s: &str) -> Self {
+        let res = s.parse().unwrap();
+        MacAddr(res)
+    }
+}
 
 #[derive(PartialEq, Clone, Eq)]
 pub struct Ipv4Address(std::net::Ipv4Addr);
@@ -377,6 +426,14 @@ impl <'a> PartialEq for LayerStack<'a> {
 impl <'a> Eq for LayerStack<'a> {
 }
 */
+
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
+pub struct Ether {
+    pub dst: Option<MacAddr>,
+    pub src: Option<MacAddr>,
+    pub len: Option<u16>,
+    pub crc: Option<u32>,
+}
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Udp {
