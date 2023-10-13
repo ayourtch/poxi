@@ -7,4 +7,5 @@ fn main() {
 
     let udp = &layers[UDP!()];
     println!("UDP Sport: {}", udp.sport);
+    println!("Encoded bytes: {:02x?}", layers.fill().encode());
 }
