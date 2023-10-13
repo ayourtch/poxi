@@ -9,6 +9,7 @@ extern crate quote;
 
 // use proc_macro::TokenStream;
 use syn::Ident; // , VariantData};
+use proc_macro::Literal;
 use syn::{
     parse_macro_input, parse_quote, Data, DeriveInput, Fields, GenericParam, Generics, Index, Path,
     Type,
@@ -77,6 +78,8 @@ impl ToTokens for NetprotoStructField {
 
 #[proc_macro_derive(NetworkProtocol)]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    use std::str::FromStr;
+
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
     // let ast = syn::parse_macro_input(&source).unwrap();
@@ -88,7 +91,27 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
     let idents = netproto_struct_fields(&input.data);
 
+    let ayproto = match name.to_string().as_str() {
+        "Ip" => quote! {
+            vec![4]
+        },
+        "Udp" => quote! {
+            let ips = (*stack).items_of(IP!());
+            let mut out = vec![];
+            if ips.len() > 0 {
+                let x = ips[0].ttl;
+                out.push(x);
+            }
+            out.push(22);
+            out
+        },
+        x => quote! {
+            vec![]
+        },
+    };
+
     let mut tokens = quote! {
+
         impl<T: Layer> Div<T> for #name {
             type Output = LayerStack;
             fn div(mut self, rhs: T) -> Self::Output {
@@ -115,6 +138,9 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
             fn box_clone(&self) -> Box<dyn Layer> {
                 Box::new((*self).clone())
+            }
+            fn encode(&self, stack: &LayerStack, my_index: usize) -> Vec<u8> {
+                #ayproto 
             }
         }
 

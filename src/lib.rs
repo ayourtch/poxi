@@ -234,6 +234,38 @@ impl LayerStack {
     pub fn g<T: Layer>(&self, idx: T) -> &T {
         self[TypeId::of::<T>()].downcast_ref().unwrap()
     }
+
+    pub fn item_at<T: Layer>(&self, item: T, idx: usize) -> &T {
+        self.layers[idx].downcast_ref().unwrap()
+    }
+
+    pub fn items_of<T: Layer>(&self, item: T) -> Vec<&T> {
+        let mut out = vec![];
+        for ll in &self.layers {
+            if ll.type_id_is(TypeId::of::<T>()) {
+                out.push(ll.downcast_ref().unwrap())
+            }
+        }
+        out
+    }
+
+    pub fn encode(self) -> Vec<u8> {
+        let mut out: Vec<u8> = vec![];
+        for (i, ll) in (&self.layers).into_iter().enumerate() {
+            out.append(&mut ll.encode(&self, i));
+        }
+        out
+    }
+
+    pub fn indices_of<T: Layer>(&self, typ: T) -> Vec<usize> {
+        let mut out = vec![];
+        for (i, ref layer) in (&self.layers).into_iter().enumerate() {
+            if layer.type_id_is(typ.type_id()) {
+                out.push(i)
+            }
+        }
+        out
+    }
 }
 
 impl Index<TypeId> for LayerStack {
@@ -314,6 +346,7 @@ pub trait Layer: Debug + mopa::Any + New {
     fn type_id_is(&self, x: TypeId) -> bool {
         self.type_id() == x
     }
+    fn encode(&self, stack: &LayerStack, my_index: usize) -> Vec<u8>;
 }
 
 mopafy!(Layer);
