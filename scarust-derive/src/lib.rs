@@ -112,14 +112,12 @@ impl ToTokens for NetprotoStructField {
 
 #[proc_macro_derive(NetworkProtocol, attributes(nproto))]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    use syn::{parenthesized, parse_quote, token, ItemStruct, LitInt};
     use std::str::FromStr;
+    use syn::{parenthesized, parse_quote, token, ItemStruct, LitInt};
 
     let mut nproto_align = None::<usize>;
     let mut nproto_packed = None::<usize>;
-
     let default_encoder: TokenStream = "BinaryBigEndian".parse().unwrap();
-
     let mut nproto_encoder = default_encoder;
 
     // let source = input.to_string();
@@ -146,16 +144,12 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     let content;
                     parenthesized!(content in meta.input);
                     let lit: syn::Type = content.parse()?;
-                    /*
-                    let lit: LitInt = content.parse()?;
-                    let n: usize = lit.base10_parse()?;
-                    */
                     if let syn::Type::Path(tt) = lit {
                         let encoder = tt.path.to_token_stream();
                         nproto_encoder = encoder;
                         return Ok(());
                     } else {
-                        return Err(meta.error("bad encoder type"))
+                        return Err(meta.error("bad encoder type"));
                     }
                 }
 
@@ -173,8 +167,9 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     return Ok(());
                 }
 
-                return Err(meta.error("unrecognized nproto"))
-            }).unwrap();
+                return Err(meta.error("unrecognized nproto"));
+            })
+            .unwrap();
         }
     }
 
@@ -182,7 +177,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let macroname = Ident::new(&format!("{}", &name).to_uppercase(), Span::call_site());
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
 
-    let idents = netproto_struct_fields(&input.data);
+    let idents = netproto_struct_fields(&nproto_encoder, &input.data);
 
     let ayprepare = match name.to_string().as_str() {
         "Udp" => quote! {
@@ -465,7 +460,7 @@ fn struct_fields(data: &Data) -> Vec<StructField> {
     out
 }
 
-fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
+fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<NetprotoStructField> {
     fn path_is_option(path: &Path) -> bool {
         path.leading_colon.is_none()
             && path.segments.len() == 1
@@ -530,6 +525,79 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                     for f in &fields.named {
                         let name = f.ident.clone().unwrap();
                         // eprintln!("FIELD: {:#?}", f.ty);
+                        for attr in &f.attrs {
+                            use syn::{
+                                braced, parenthesized, parse_quote, token, ItemStruct, LitInt,
+                                Token,
+                            };
+
+                            let mut nproto_align = None::<usize>;
+                            let mut nproto_packed = None::<usize>;
+                            let mut nproto_encoder = default_encoder.clone();
+
+                            if attr.path().is_ident("nproto") {
+                                attr.parse_nested_meta(|meta| {
+                                    // #[nproto(auto = _expr_)]
+                                    if meta.path.is_ident("auto") {
+                                        println!("XXXX: {:?}", &meta.input);
+                                        let eq_token: Option<Token![=]> = meta.input.parse()?;
+                                        let val_expr: syn::Expr = meta.input.parse()?;
+                                        println!("AAAAAA: {:?}", &val_expr);
+                                        return Ok(());
+                                    }
+
+                                    // #[nproto(default = _expr_)]
+                                    if meta.path.is_ident("default") {
+                                        println!("XXXX: {:?}", &meta.input);
+                                        let eq_token: Option<Token![=]> = meta.input.parse()?;
+                                        let val_expr: syn::Expr = meta.input.parse()?;
+                                        println!("AAAAAA: {:?}", &val_expr);
+                                        return Ok(());
+                                    }
+                                    // #[nproto(align(N))]
+                                    if meta.path.is_ident("align") {
+                                        let content;
+                                        parenthesized!(content in meta.input);
+                                        let lit: LitInt = content.parse()?;
+                                        let n: usize = lit.base10_parse()?;
+                                        nproto_align = Some(n);
+                                        return Ok(());
+                                    }
+
+                                    // #[nproto(encoder(X))]
+                                    if meta.path.is_ident("encoder") {
+                                        let content;
+                                        parenthesized!(content in meta.input);
+                                        let lit: syn::Type = content.parse()?;
+                                        if let syn::Type::Path(tt) = lit {
+                                            let encoder = tt.path.to_token_stream();
+                                            nproto_encoder = encoder;
+                                            return Ok(());
+                                        } else {
+                                            return Err(meta.error("bad encoder type"));
+                                        }
+                                    }
+
+                                    // #[nproto(packed)] or #[nproto(packed(N))], omitted N means 1
+                                    if meta.path.is_ident("packed") {
+                                        if meta.input.peek(token::Paren) {
+                                            let content;
+                                            parenthesized!(content in meta.input);
+                                            let lit: LitInt = content.parse()?;
+                                            let n: usize = lit.base10_parse()?;
+                                            nproto_packed = Some(n);
+                                        } else {
+                                            nproto_packed = Some(1);
+                                        }
+                                        return Ok(());
+                                    }
+
+                                    return Err(meta
+                                        .error(format!("unrecognized nproto: {:?}", &meta.path)));
+                                })
+                                .unwrap();
+                            }
+                        }
                         match &f.ty {
                             Type::Path(typepath)
                                 if typepath.qself.is_none() && path_is_option(&typepath.path) =>
