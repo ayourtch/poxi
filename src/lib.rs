@@ -557,7 +557,7 @@ impl <'a> Eq for LayerStack<'a> {
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
 #[nproto(encoder(BinaryBigEndian))]
-pub struct Ether {
+pub struct ether {
     #[nproto(auto = "ff:ff:ff:ff:ff:ff", default = Auto)]
     pub dst: Value<MacAddr>,
     #[nproto(auto = "00:00:00:00:00:00", default = Auto)]

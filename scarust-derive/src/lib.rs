@@ -110,6 +110,19 @@ impl ToTokens for NetprotoStructField {
     }
 }
 
+fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+    let out = match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+    };
+    if &out == s {
+        out.to_uppercase()
+    } else {
+        out
+    }
+}
+
 #[proc_macro_derive(NetworkProtocol, attributes(nproto))]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     use std::str::FromStr;
@@ -174,7 +187,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     }
 
     let name = input.ident;
-    let macroname = Ident::new(&format!("{}", &name).to_uppercase(), Span::call_site());
+    let macroname = Ident::new(&capitalize(&format!("{}", &name)), Span::call_site());
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
 
     let idents = netproto_struct_fields(&nproto_encoder, &input.data);
