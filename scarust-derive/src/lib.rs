@@ -146,18 +146,42 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
     let ayproto = match name.to_string().as_str() {
         "Ip" => quote! {
-            vec![4]
+            use rand::Rng;
+            let mut rng = rand::thread_rng();
+            let mut out = vec![];
+            let ver: u8 = match self.version {
+                Value::Random => rng.gen::<u8>() & 0xf,
+                Value::Set(x) => x & 0xf,
+                Value::Auto => 0x4,
+            };
+            let ihl: u8 = 5;
+            let v_ihl: u8 = (ver << 4) | ihl;
+            out.push(v_ihl);
+            out
         },
         "Udp" => quote! {
+            use rand::Rng;
+            let mut rng = rand::thread_rng();
             let mut out = vec![];
             out.push(0x22);
             out.push((self.chksum.value() & 0xff) as u8);
+            let len = match self.len {
+                Value::Random => rng.gen(),
+                Value::Set(x) => x,
+                Value::Auto => if my_index+1 < encoded_data.len() {
+                    let l = encoded_data[my_index+1].len();
+                    if l < 65536-8 {
+                        (l+8) as u16
+                    } else {
+                        panic!("{} is too big for a u16", &l);
+                    }
+                } else {
+                    8
+                }
+            };
 
-            if my_index+1 < encoded_data.len() {
-                println!("  next layer already done {}: {:02x?}", my_index, &encoded_data[my_index+1]);
-            } else {
-                println!("  nothing for next layer. Current index: {}, len: {}", my_index, encoded_data.len());
-            }
+            out.push(((len >> 8) as u8) & 0xff);
+            out.push((len as u8) & 0xff);
             out
         },
         x => quote! {
@@ -204,7 +228,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 #ayprepare
             }
             fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
-                #ayproto 
+                #ayproto
             }
         }
 

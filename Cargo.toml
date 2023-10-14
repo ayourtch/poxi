@@ -11,3 +11,4 @@ scarust-derive = { path = "scarust-derive" }
 mopa = "*"
 mac_address = "*"
 itertools = "*"
+rand = "*"
