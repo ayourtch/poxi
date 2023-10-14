@@ -8,8 +8,8 @@ extern crate syn;
 extern crate quote;
 
 // use proc_macro::TokenStream;
-use syn::Ident; // , VariantData};
 use proc_macro::Literal;
+use syn::Ident; // , VariantData};
 use syn::{
     parse_macro_input, parse_quote, Data, DeriveInput, Fields, GenericParam, Generics, Index, Path,
     Type,
@@ -30,7 +30,7 @@ struct NetprotoStructField {
     ty: TokenStream,
 }
 
-use proc_macro2::{Punct, Spacing, Span, TokenTree, TokenStream};
+use proc_macro2::{Punct, Spacing, Span, TokenStream, TokenTree};
 use quote::{ToTokens, TokenStreamExt};
 
 impl ToTokens for StructField {
@@ -59,12 +59,12 @@ impl ToTokens for NetprotoStructField {
         let fixed_typ: TokenStream = if self.is_value {
             let iter = typ.clone().into_iter().skip(2);
             let len = iter.clone().collect::<Vec<_>>().len();
-            iter.take(len-1).collect()
+            iter.take(len - 1).collect()
         } else {
             typ.clone()
         };
 
-        let do_assignment_with_conversion = if self.is_value{
+        let do_assignment_with_conversion = if self.is_value {
             quote! {
                 pub fn #name<T: Into<#fixed_typ>>(mut self, #name: T) -> Self {
                     let #name: #fixed_typ = #name.into();
@@ -100,17 +100,17 @@ impl ToTokens for NetprotoStructField {
         let tk = if self.add_conversion {
             quote! {
                 #do_assignment_with_conversion
-            } 
+            }
         } else {
             quote! {
                 #do_assignment_without_conversion
-            } 
+            }
         };
         tokens.extend(tk);
     }
 }
 
-#[proc_macro_derive(NetworkProtocol)]
+#[proc_macro_derive(NetworkProtocol, attributes(nproto))]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     use std::str::FromStr;
 
@@ -119,6 +119,8 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     // let ast = syn::parse_macro_input(&source).unwrap();
     //
     let input = syn::parse_macro_input!(input as DeriveInput);
+    println!("XXXX: {:?}", &input);
+
     let name = input.ident;
     let macroname = Ident::new(&format!("{}", &name).to_uppercase(), Span::call_site());
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
@@ -278,9 +280,6 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     proc_macro::TokenStream::from(tokens)
 }
 
-
-
-
 #[proc_macro_derive(FromStringHashmap)]
 pub fn from_string_hashmap(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // let source = input.to_string();
@@ -432,7 +431,15 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
             if ab.args.len() == 1 {
                 if let syn::GenericArgument::Type(syn::Type::Path(tp)) = &ab.args[0] {
                     let is_int = tp.path.segments.len() == 1
-                        && tp.path.segments.iter().next().unwrap().ident.to_string().starts_with("u");
+                        && tp
+                            .path
+                            .segments
+                            .iter()
+                            .next()
+                            .unwrap()
+                            .ident
+                            .to_string()
+                            .starts_with("u");
                     // println!("IS_INT: {} for {:?}", &is_int, &seg);
                     return is_int;
                 }
@@ -444,13 +451,17 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
     fn path_is_int(path: &Path) -> bool {
         (path.leading_colon.is_none()
             && path.segments.len() == 1
-            && path.segments.iter().next().unwrap().ident.to_string().starts_with("u")
-            ) ||
-        (path.leading_colon.is_none()
-            && path.segments.len() == 1
-            && is_int_segment(path.segments.iter().next().unwrap())
-            )
-
+            && path
+                .segments
+                .iter()
+                .next()
+                .unwrap()
+                .ident
+                .to_string()
+                .starts_with("u"))
+            || (path.leading_colon.is_none()
+                && path.segments.len() == 1
+                && is_int_segment(path.segments.iter().next().unwrap()))
     }
 
     let mut out = vec![];
@@ -504,7 +515,7 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     is_value: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
-                            },
+                            }
                             _ => {
                                 panic!("todo!");
                             }
