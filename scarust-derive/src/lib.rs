@@ -150,8 +150,14 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         },
         "Udp" => quote! {
             let mut out = vec![];
+            out.push(0x22);
             out.push((self.chksum.value() & 0xff) as u8);
-            out.push(22);
+
+            if my_index+1 < encoded_data.len() {
+                println!("  next layer already done {}: {:02x?}", my_index, &encoded_data[my_index+1]);
+            } else {
+                println!("  nothing for next layer. Current index: {}, len: {}", my_index, encoded_data.len());
+            }
             out
         },
         x => quote! {
@@ -197,7 +203,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack) {
                 #ayprepare
             }
-            fn encode(&self, stack: &LayerStack, my_index: usize) -> Vec<u8> {
+            fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
                 #ayproto 
             }
         }

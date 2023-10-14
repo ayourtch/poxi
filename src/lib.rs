@@ -11,6 +11,7 @@ use std::ops::Index;
 use std::str::FromStr;
 #[macro_use]
 extern crate mopa;
+extern crate itertools;
 extern crate mac_address;
 
 pub struct ParseNumberError;
@@ -365,6 +366,30 @@ pub struct FunnyTest {
     pub bar: Option<u32>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct EncodingVecVec {
+    data: Vec<Vec<u8>>,
+    curr_idx: usize,
+}
+
+impl EncodingVecVec {
+    fn len(&self) -> usize {
+        // take into account the "phantom" layers
+        self.data.len() + self.curr_idx + 1
+    }
+}
+impl Index<usize> for EncodingVecVec {
+    type Output = Vec<u8>;
+
+    fn index(&self, idx: usize) -> &Self::Output {
+        if idx > self.curr_idx {
+            &self.data[idx - self.curr_idx - 1]
+        } else {
+            panic!("encoding data at layer {} not yet ready", idx);
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct LayerStack {
     pub layers: Vec<Box<dyn Layer>>,
@@ -390,11 +415,18 @@ impl LayerStack {
     }
 
     pub fn encode(self) -> Vec<u8> {
-        let mut out: Vec<u8> = vec![];
-        for (i, ll) in (&self.layers).into_iter().enumerate() {
-            out.append(&mut ll.encode(&self, i));
+        let mut out = EncodingVecVec {
+            data: vec![],
+            curr_idx: self.layers.len(),
+        };
+        for (i, ll) in (&self.layers).into_iter().enumerate().rev() {
+            out.curr_idx = i;
+            println!("{}: {:?}", i, &ll);
+            let ev = ll.encode(&self, i, &out);
+            out.data.push(ev);
         }
-        out
+        out.data.reverse();
+        itertools::concat(out.data)
     }
 
     pub fn fill(&self) -> LayerStack {
@@ -496,7 +528,12 @@ pub trait Layer: Debug + mopa::Any + New {
     }
     /* fill the unknown fields based on the entire stack contents */
     fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack);
-    fn encode(&self, stack: &LayerStack, my_index: usize) -> Vec<u8>;
+    fn encode(
+        &self,
+        stack: &LayerStack,
+        my_index: usize,
+        encoded_layers: &EncodingVecVec,
+    ) -> Vec<u8>;
 }
 
 mopafy!(Layer);

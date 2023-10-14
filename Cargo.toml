@@ -10,3 +10,4 @@ edition = "2018"
 scarust-derive = { path = "scarust-derive" }
 mopa = "*"
 mac_address = "*"
+itertools = "*"
