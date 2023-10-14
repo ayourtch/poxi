@@ -121,11 +121,91 @@ impl From<&str> for U16 {
 }
 */
 #[derive(PartialEq, Clone, Eq)]
+pub enum Value<T> {
+    Auto,
+    Random,
+    Set(T),
+}
+
+impl<T: Copy> Value<T> {
+    fn value(&self) -> T {
+        match self {
+            Self::Auto => panic!("can not return auto value"),
+            Self::Random => unimplemented!(),
+            Self::Set(x) => *x,
+        }
+    }
+}
+
+impl<T: std::cmp::PartialEq> Value<T> {
+    fn is_auto(&self) -> bool {
+        self == &Self::Auto
+    }
+}
+
+impl<T: std::fmt::Display> fmt::Display for Value<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Auto => f.write_str(&format!("Auto")),
+            Self::Random => f.write_str(&format!("Random")),
+            Self::Set(x) => x.fmt(f),
+        }
+    }
+}
+
+impl<T: std::fmt::Debug> fmt::Debug for Value<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Auto => f.write_str(&format!("Auto")),
+            Self::Random => f.write_str(&format!("Random")),
+            Self::Set(x) => f.write_str(&format!("{:?}", &x)),
+        }
+    }
+}
+
+impl<T> Default for Value<T> {
+    fn default() -> Self {
+        Self::Auto
+    }
+}
+
+impl<'a, T: From<&'a str>> From<&'a str> for Value<T> {
+    fn from(s: &'a str) -> Self {
+        Self::Set(T::from(s))
+    }
+}
+
+/*
+impl<T, V> From<V> for Value<T>
+where T: From<V>, V: FromStr
+{
+    fn from(v: V) -> Self {
+        Self::Set(v)
+    }
+}
+*/
+
+pub enum ValueParseError {
+    Error,
+}
+
+impl<T: FromStr> FromStr for Value<T> {
+    type Err = ValueParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match T::from_str(s) {
+            Ok(res) => Ok(Self::Set(res)),
+            Err(e) => panic!("Could not parse!"),
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Eq)]
 pub struct MacAddr(mac_address::MacAddress);
 
 impl fmt::Debug for MacAddr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&format!("{:?}", &self.0))
+        f.write_str(&format!("{}", &self.0))
     }
 }
 
@@ -253,6 +333,17 @@ where
     let res = v.parse::<T>();
     match res {
         Ok(val) => Some(val),
+        Err(_) => panic!("unable to parse"),
+    }
+}
+
+fn parse_pair_as_value<T>(v: &str) -> Value<T>
+where
+    T: FromStr,
+{
+    let res = v.parse::<T>();
+    match res {
+        Ok(val) => Value::Set(val),
         Err(_) => panic!("unable to parse"),
     }
 }
@@ -429,18 +520,18 @@ impl <'a> Eq for LayerStack<'a> {
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Ether {
-    pub dst: Option<MacAddr>,
-    pub src: Option<MacAddr>,
-    pub len: Option<u16>,
-    pub crc: Option<u32>,
+    pub dst: Value<MacAddr>,
+    pub src: Value<MacAddr>,
+    pub len: Value<u16>,
+    pub crc: Value<u32>,
 }
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Udp {
-    pub sport: u16,
-    pub dport: u16,
-    pub len: Option<u16>,
-    pub chksum: Option<u16>,
+    pub sport: Value<u16>,
+    pub dport: Value<u16>,
+    pub len: Value<u16>,
+    pub chksum: Value<u16>,
 }
 
 use std::num::ParseIntError;
@@ -474,18 +565,18 @@ impl FromStr for IpOption {
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {
-    pub version: u8,
-    pub ihl: Option<u8>,
-    pub tos: u8,
-    pub len: Option<u16>,
-    pub id: u16,
-    pub flags: IpFlags,
-    pub frag: u16,
+    pub version: Value<u8>,
+    pub ihl: Value<u8>,
+    pub tos: Value<u8>,
+    pub len: Value<u16>,
+    pub id: Value<u16>,
+    pub flags: Value<IpFlags>,
+    pub frag: Value<u16>,
     pub ttl: u8,
     pub proto: u8,
-    pub chksum: Option<u16>,
-    pub src: Ipv4Address,
-    pub dst: Ipv4Address,
+    pub chksum: Value<u16>,
+    pub src: Value<Ipv4Address>,
+    pub dst: Value<Ipv4Address>,
     pub options: Vec<IpOption>,
 }
 
@@ -526,18 +617,18 @@ impl Ip {
 impl Default for Ip {
     fn default() -> Self {
         Ip {
-            version: 4,
-            ihl: None,
-            tos: 0,
-            len: None,
-            id: 1,
+            version: Value::Set(4),
+            ihl: Value::Auto,
+            tos: Value::Set(0),
+            len: Value::Auto,
+            id: Value::Set(1),
             flags: Default::default(),
-            frag: 0,
+            frag: Value::Set(0),
             ttl: 64,
             proto: 0, // hopopt
-            chksum: None,
-            src: Ipv4Address::new(127, 0, 0, 1),
-            dst: Ipv4Address::new(127, 0, 0, 1),
+            chksum: Value::Auto,
+            src: Value::Set(Ipv4Address::new(127, 0, 0, 1)),
+            dst: Value::Set(Ipv4Address::new(127, 0, 0, 1)),
             options: vec![],
         }
     }

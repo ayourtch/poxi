@@ -26,7 +26,7 @@ struct NetprotoStructField {
     name: Ident,
     conv: Ident,
     add_conversion: bool,
-    is_option: bool,
+    is_value: bool,
     ty: TokenStream,
 }
 
@@ -56,7 +56,7 @@ impl ToTokens for NetprotoStructField {
         let name = self.name.clone();
         let conv = self.conv.clone();
         let typ = self.ty.clone();
-        let fixed_typ: TokenStream = if self.is_option {
+        let fixed_typ: TokenStream = if self.is_value {
             let iter = typ.clone().into_iter().skip(2);
             let len = iter.clone().collect::<Vec<_>>().len();
             iter.take(len-1).collect()
@@ -64,11 +64,11 @@ impl ToTokens for NetprotoStructField {
             typ.clone()
         };
 
-        let do_assignment_with_conversion = if self.is_option {
+        let do_assignment_with_conversion = if self.is_value{
             quote! {
                 pub fn #name<T: Into<#fixed_typ>>(mut self, #name: T) -> Self {
                     let #name: #fixed_typ = #name.into();
-                    self.#name = Some(#name);
+                    self.#name = Value::Set(#name);
                     self
                 }
             }
@@ -81,10 +81,10 @@ impl ToTokens for NetprotoStructField {
                 }
             }
         };
-        let do_assignment_without_conversion = if self.is_option {
+        let do_assignment_without_conversion = if self.is_value {
             quote! {
-                pub fn #name(mut self, #name: #typ) -> Self {
-                    self.#name = Some(#name);
+                pub fn #name(mut self, #name: #fixed_typ) -> Self {
+                    self.#name = Value::Set(#name);
                     self
                 }
             }
@@ -128,14 +128,14 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let ayprepare = match name.to_string().as_str() {
         "Udp" => quote! {
             let mut out = self.clone();
-            if self.chksum.is_none() {
+            if self.chksum.is_auto() {
                 let mut csum = 3;
                 if my_index > 0 {
                     if let Some(ip) = (*stack).item_at(IP!(), my_index - 1) {
                         csum = ip.ttl;
                     }
                 }
-                out.chksum = Some(csum as u16);
+                out.chksum = Value::Set(csum as u16);
             }
             out_stack.layers.push(Box::new(out))
         },
@@ -150,7 +150,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         },
         "Udp" => quote! {
             let mut out = vec![];
-            out.push((self.chksum.unwrap() & 0xff) as u8);
+            out.push((self.chksum.value() & 0xff) as u8);
             out.push(22);
             out
         },
@@ -304,6 +304,11 @@ fn struct_fields(data: &Data) -> Vec<StructField> {
             && path.segments.len() == 1
             && path.segments.iter().next().unwrap().ident == "Option"
     }
+    fn path_is_value(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident == "Value"
+    }
     fn path_is_vec(path: &Path) -> bool {
         path.leading_colon.is_none()
             && path.segments.len() == 1
@@ -326,6 +331,14 @@ fn struct_fields(data: &Data) -> Vec<StructField> {
                                 out.push(StructField {
                                     name,
                                     conv: format_ident!("parse_pair_as_option"),
+                                });
+                            }
+                            Type::Path(typepath)
+                                if typepath.qself.is_none() && path_is_value(&typepath.path) =>
+                            {
+                                out.push(StructField {
+                                    name,
+                                    conv: format_ident!("parse_pair_as_value"),
                                 });
                             }
                             Type::Path(typepath)
@@ -372,16 +385,42 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
             && path.segments.len() == 1
             && path.segments.iter().next().unwrap().ident == "Option"
     }
+    fn path_is_value(path: &Path) -> bool {
+        path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.iter().next().unwrap().ident == "Value"
+    }
     fn path_is_vec(path: &Path) -> bool {
         path.leading_colon.is_none()
             && path.segments.len() == 1
             && path.segments.iter().next().unwrap().ident == "Vec"
     }
 
+    fn is_int_segment(seg: &syn::PathSegment) -> bool {
+        use syn::PathArguments::AngleBracketed;
+        if let AngleBracketed(ab) = &seg.arguments {
+            if ab.args.len() == 1 {
+                if let syn::GenericArgument::Type(syn::Type::Path(tp)) = &ab.args[0] {
+                    let is_int = tp.path.segments.len() == 1
+                        && tp.path.segments.iter().next().unwrap().ident.to_string().starts_with("u");
+                    // println!("IS_INT: {} for {:?}", &is_int, &seg);
+                    return is_int;
+                }
+            }
+        }
+        false
+    }
+
     fn path_is_int(path: &Path) -> bool {
-        path.leading_colon.is_none()
+        (path.leading_colon.is_none()
             && path.segments.len() == 1
             && path.segments.iter().next().unwrap().ident.to_string().starts_with("u")
+            ) ||
+        (path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && is_int_segment(path.segments.iter().next().unwrap())
+            )
+
     }
 
     let mut out = vec![];
@@ -401,7 +440,18 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     name,
                                     conv: format_ident!("parse_pair_as_option"),
                                     add_conversion: !path_is_int(&typepath.path),
-                                    is_option: true,
+                                    is_value: true,
+                                    ty: typepath.path.clone().to_token_stream(),
+                                });
+                            }
+                            Type::Path(typepath)
+                                if typepath.qself.is_none() && path_is_value(&typepath.path) =>
+                            {
+                                out.push(NetprotoStructField {
+                                    name,
+                                    conv: format_ident!("parse_pair_as_value"),
+                                    add_conversion: !path_is_int(&typepath.path),
+                                    is_value: true,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
                             }
@@ -412,7 +462,7 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     name,
                                     conv: format_ident!("parse_pair_as_vec"),
                                     add_conversion: !path_is_int(&typepath.path),
-                                    is_option: false,
+                                    is_value: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
                             }
@@ -421,7 +471,7 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     name,
                                     conv: format_ident!("parse_pair"),
                                     add_conversion: !path_is_int(&typepath.path),
-                                    is_option: false,
+                                    is_value: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
                             },
