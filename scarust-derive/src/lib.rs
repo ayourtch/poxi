@@ -112,14 +112,71 @@ impl ToTokens for NetprotoStructField {
 
 #[proc_macro_derive(NetworkProtocol, attributes(nproto))]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    use syn::{parenthesized, parse_quote, token, ItemStruct, LitInt};
     use std::str::FromStr;
+
+    let mut nproto_align = None::<usize>;
+    let mut nproto_packed = None::<usize>;
+
+    let default_encoder: TokenStream = "BinaryBigEndian".parse().unwrap();
+
+    let mut nproto_encoder = default_encoder;
 
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
     // let ast = syn::parse_macro_input(&source).unwrap();
     //
     let input = syn::parse_macro_input!(input as DeriveInput);
-    println!("XXXX: {:?}", &input);
+
+    for attr in &input.attrs {
+        if attr.path().is_ident("nproto") {
+            attr.parse_nested_meta(|meta| {
+                // #[nproto(align(N))]
+                if meta.path.is_ident("align") {
+                    let content;
+                    parenthesized!(content in meta.input);
+                    let lit: LitInt = content.parse()?;
+                    let n: usize = lit.base10_parse()?;
+                    nproto_align = Some(n);
+                    return Ok(());
+                }
+
+                // #[nproto(encoder(X))]
+                if meta.path.is_ident("encoder") {
+                    let content;
+                    parenthesized!(content in meta.input);
+                    let lit: syn::Type = content.parse()?;
+                    /*
+                    let lit: LitInt = content.parse()?;
+                    let n: usize = lit.base10_parse()?;
+                    */
+                    if let syn::Type::Path(tt) = lit {
+                        let encoder = tt.path.to_token_stream();
+                        nproto_encoder = encoder;
+                        return Ok(());
+                    } else {
+                        return Err(meta.error("bad encoder type"))
+                    }
+                }
+
+                // #[nproto(packed)] or #[nproto(packed(N))], omitted N means 1
+                if meta.path.is_ident("packed") {
+                    if meta.input.peek(token::Paren) {
+                        let content;
+                        parenthesized!(content in meta.input);
+                        let lit: LitInt = content.parse()?;
+                        let n: usize = lit.base10_parse()?;
+                        nproto_packed = Some(n);
+                    } else {
+                        nproto_packed = Some(1);
+                    }
+                    return Ok(());
+                }
+
+                return Err(meta.error("unrecognized nproto"))
+            }).unwrap();
+        }
+    }
 
     let name = input.ident;
     let macroname = Ident::new(&format!("{}", &name).to_uppercase(), Span::call_site());
@@ -275,7 +332,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
 
     };
-    eprintln!("{}", tokens.to_string());
+    // eprintln!("{}", tokens.to_string());
 
     proc_macro::TokenStream::from(tokens)
 }
@@ -311,7 +368,7 @@ pub fn from_string_hashmap(input: proc_macro::TokenStream) -> proc_macro::TokenS
             }
         }
     };
-    eprintln!("{}", &tokens.to_string());
+    // eprintln!("{}", &tokens.to_string());
 
     proc_macro::TokenStream::from(tokens)
 }
