@@ -26,6 +26,7 @@ struct NetprotoStructField {
     name: Ident,
     conv: Ident,
     add_conversion: bool,
+    is_option: bool,
     ty: TokenStream,
 }
 
@@ -55,21 +56,54 @@ impl ToTokens for NetprotoStructField {
         let name = self.name.clone();
         let conv = self.conv.clone();
         let typ = self.ty.clone();
+        let fixed_typ: TokenStream = if self.is_option {
+            let iter = typ.clone().into_iter().skip(2);
+            let len = iter.clone().collect::<Vec<_>>().len();
+            iter.take(len-1).collect()
+        } else {
+            typ.clone()
+        };
+
+        let do_assignment_with_conversion = if self.is_option {
+            quote! {
+                pub fn #name<T: Into<#fixed_typ>>(mut self, #name: T) -> Self {
+                    let #name: #fixed_typ = #name.into();
+                    self.#name = Some(#name);
+                    self
+                }
+            }
+        } else {
+            quote! {
+                pub fn #name<T: Into<#fixed_typ>>(mut self, #name: T) -> Self {
+                    let #name: #fixed_typ = #name.into();
+                    self.#name = #name;
+                    self
+                }
+            }
+        };
+        let do_assignment_without_conversion = if self.is_option {
+            quote! {
+                pub fn #name(mut self, #name: #typ) -> Self {
+                    self.#name = Some(#name);
+                    self
+                }
+            }
+        } else {
+            quote! {
+                pub fn #name(mut self, #name: #typ) -> Self {
+                    self.#name = #name;
+                    self
+                }
+            }
+        };
 
         let tk = if self.add_conversion {
             quote! {
-                     pub fn #name<T: Into<#typ>>(mut self, #name: T) -> Self {
-                         let #name = #name.into();
-                         self.#name = #name;
-                         self
-                     }
+                #do_assignment_with_conversion
             } 
         } else {
             quote! {
-                     pub fn #name(mut self, #name: #typ) -> Self {
-                         self.#name = #name;
-                         self
-                     }
+                #do_assignment_without_conversion
             } 
         };
         tokens.extend(tk);
@@ -125,6 +159,12 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         },
     };
 
+    let assign_in_macro = quote! {
+                    // $ip.$ident = TryFrom::try_from($e).unwrap();
+                    // $ip.$ident(TryFrom::try_from($e).unwrap().into());
+                    $ip = $ip.$ident($e);
+    };
+
     let mut tokens = quote! {
 
         impl<T: Layer> Div<T> for #name {
@@ -174,7 +214,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
             ($ip:ident, $ident:ident=$e:expr) => {{
                 {
-                    $ip.$ident = TryFrom::try_from($e).unwrap();
+                    #assign_in_macro
                 }
             }};
             ($ip: ident, $ident:ident=$e:expr, $($x_ident:ident=$es:expr),+) => {{
@@ -361,6 +401,7 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     name,
                                     conv: format_ident!("parse_pair_as_option"),
                                     add_conversion: !path_is_int(&typepath.path),
+                                    is_option: true,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
                             }
@@ -371,6 +412,7 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     name,
                                     conv: format_ident!("parse_pair_as_vec"),
                                     add_conversion: !path_is_int(&typepath.path),
+                                    is_option: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
                             }
@@ -379,6 +421,7 @@ fn netproto_struct_fields(data: &Data) -> Vec<NetprotoStructField> {
                                     name,
                                     conv: format_ident!("parse_pair"),
                                     add_conversion: !path_is_int(&typepath.path),
+                                    is_option: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                 });
                             },

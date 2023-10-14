@@ -79,7 +79,7 @@ fn main() {
     let layers = IP!()
         .version(5)
         .id(22)
-        .ihl(Some(123))
+        .ihl(123)
         .src([1, 1, 1, 1])
         .dst("2.2.2.2")
         .options([NOP(), NOP(), SourceRoute(["1.1.1.1".into()].into())])
