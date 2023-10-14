@@ -556,8 +556,11 @@ impl <'a> Eq for LayerStack<'a> {
 */
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
+#[nproto(encoder=BigEndian)]
 pub struct Ether {
+    #[nproto(auto = "ff:ff:ff:ff:ff:ff", default = Auto)]
     pub dst: Value<MacAddr>,
+    #[nproto(auto = "00:00:00:00:00:00", default = Auto)]
     pub src: Value<MacAddr>,
     pub len: Value<u16>,
     pub crc: Value<u32>,
@@ -565,6 +568,7 @@ pub struct Ether {
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Udp {
+    #[nproto(auto = Random, default = Auto)]
     pub sport: Value<u16>,
     pub dport: Value<u16>,
     pub len: Value<u16>,
