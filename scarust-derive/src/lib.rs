@@ -31,6 +31,7 @@ struct NetprotoStructField {
     default: Option<TokenStream>,
     fill: Option<syn::Expr>,
     auto: Option<TokenStream>,
+    encode: Option<syn::Expr>,
 }
 
 macro_rules! vec_newtype {
@@ -94,6 +95,19 @@ impl ToTokens for EncodeNetprotoStructField {
                 let #varname: &#fixed_typ = &self.#name;
                 out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
             }
+        };
+
+        let tk2 = if let Some(encode_expr) = &self.0.encode {
+            if &encode_expr.to_token_stream().to_string() == "Skip" {
+                quote! {}
+            } else {
+                quote! {
+                    let #varname: Vec<u8> = #encode_expr::<BinaryBigEndian>(self, stack, my_index, encoded_data);
+                    out.extend_from_slice(&#varname);
+                }
+            }
+        } else {
+            tk2
         };
         tokens.extend(tk2);
     }
@@ -707,6 +721,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                         let mut nproto_default = None::<TokenStream>;
                         let mut nproto_fill = None::<syn::Expr>;
                         let mut nproto_auto = None::<TokenStream>;
+                        let mut nproto_encode = None::<syn::Expr>;
                         let name = f.ident.clone().unwrap();
                         // eprintln!("FIELD: {:#?}", f.ty);
                         for attr in &f.attrs {
@@ -726,6 +741,14 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                         let eq_token: Option<Token![=]> = meta.input.parse()?;
                                         let val_expr: syn::Expr = meta.input.parse()?;
                                         nproto_auto = Some(val_expr.to_token_stream());
+                                        return Ok(());
+                                    }
+
+                                    // #[nproto(encode = _expr_)]
+                                    if meta.path.is_ident("encode") {
+                                        let eq_token: Option<Token![=]> = meta.input.parse()?;
+                                        let val_expr: syn::Expr = meta.input.parse()?;
+                                        nproto_encode = Some(val_expr);
                                         return Ok(());
                                     }
 
@@ -801,6 +824,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     default: nproto_default,
                                     auto: nproto_auto,
                                     fill: nproto_fill,
+                                    encode: nproto_encode,
                                 });
                             }
                             Type::Path(typepath)
@@ -815,6 +839,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     default: nproto_default,
                                     auto: nproto_auto,
                                     fill: nproto_fill,
+                                    encode: nproto_encode,
                                 });
                             }
                             Type::Path(typepath)
@@ -829,6 +854,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     default: nproto_default,
                                     auto: nproto_auto,
                                     fill: nproto_fill,
+                                    encode: nproto_encode,
                                 });
                             }
                             Type::Path(typepath) => {
@@ -841,6 +867,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     default: nproto_default,
                                     auto: nproto_auto,
                                     fill: nproto_fill,
+                                    encode: nproto_encode,
                                 });
                             }
                             _ => {

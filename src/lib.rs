@@ -655,10 +655,31 @@ impl FromStr for IpOption {
     }
 }
 
+fn encode_ver_ihl<E: Encoder>(
+    my_layer: &Ip,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_layers: &EncodingVecVec,
+) -> Vec<u8> {
+    let ver = (my_layer.version.value() as u8) & 0xf;
+    let ihl = if my_layer.ihl.is_auto() {
+        // fixme
+        5
+    } else {
+        (my_layer.ihl.value() as u8) & 0xf
+    };
+    E::encode_u8(ver << 4 | ihl)
+}
+
+fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u8> {
+    Value::Auto
+}
+
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {
-    #[nproto(default = 4)]
+    #[nproto(default = 4, encode = Skip)]
     pub version: Value<u8>,
+    #[nproto(encode = encode_ver_ihl, fill = fill_ihl_auto)]
     pub ihl: Value<u8>,
     pub tos: Value<u8>,
     pub len: Value<u16>,
