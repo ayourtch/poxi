@@ -132,16 +132,6 @@ impl<'a, T: From<&'a str>> From<&'a str> for Value<T> {
     }
 }
 
-/*
-impl<T, V> From<V> for Value<T>
-where T: From<V>, V: FromStr
-{
-    fn from(v: V) -> Self {
-        Self::Set(v)
-    }
-}
-*/
-
 pub enum ValueParseError {
     Error,
 }
@@ -254,16 +244,6 @@ impl Ipv4Address {
         Ipv4Address(Ipv4Addr::new(o1, o2, o3, o4))
     }
 }
-
-/*
-impl Deref for Ipv4Address {
-    type Target = Ipv4Addr;
-
-    fn deref(&self) -> &Ipv4Addr {
-        &self.0
-    }
-}
-*/
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseIpv4AddressError;
