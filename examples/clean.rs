@@ -6,14 +6,11 @@ fn get_dst() -> MacAddr {
 }
 
 fn main() {
-    let layers = Ether!(src = "00:01:02:03:04:05")
-        .dst(Value::Func(get_dst))
-        .len(123)
-        .crc(123)
+    let layers = Ether!(src = "00:01:02:03:04:05").dst(Value::Func(get_dst))
         / IP!(src = "192.0.2.1", dst = "2.2.2.2")
         / UDP!(sport = 1234).dport(22)
         / UDP!().dport(22).sport(222)
-        / "Testing123".to_string();
+        / Raw!("Testing12345".into());
 
     println!("Layers ({}): {:#?}", layers.layers.len(), &layers);
 

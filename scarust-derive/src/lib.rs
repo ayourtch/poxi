@@ -517,6 +517,11 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     #varname
                 }
             }};
+            ($e:expr) => {{
+                    let mut #varname: #name = Default::default();
+                    #macroname!(#varname, data=$e);
+                    #varname
+            }};
 
         }
 

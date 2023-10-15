@@ -34,11 +34,22 @@ pub struct LayerDesc {
 #[distributed_slice]
 pub static LAYERS: [LayerDesc];
 
+#[derive(PartialEq, Clone, Eq, Debug)]
+pub struct LayerEthertypeDesc {
+    pub Name: &'static str,
+    pub Ethertype: u16,
+    pub MakeLayer: fn() -> Box<dyn Layer>,
+}
+
+#[distributed_slice]
+pub static ETHERTYPE_LAYERS: [LayerEthertypeDesc];
+
 pub trait Encoder {
     fn encode_u8(v1: u8) -> Vec<u8>;
     fn encode_u16(v1: u16) -> Vec<u8>;
     fn encode_u32(v1: u32) -> Vec<u8>;
     fn encode_u64(v1: u64) -> Vec<u8>;
+    fn encode_vec(v1: &Vec<u8>) -> Vec<u8>;
 }
 
 struct BinaryBigEndian;
@@ -70,6 +81,9 @@ impl Encoder for BinaryBigEndian {
         let o6 = ((v1 >> 8) & 0xff) as u8;
         let o7 = ((v1 >> 0) & 0xff) as u8;
         vec![o0, o1, o2, o3, o4, o5, o6, o7]
+    }
+    fn encode_vec(v1: &Vec<u8>) -> Vec<u8> {
+        v1.clone()
     }
 }
 
@@ -122,6 +136,12 @@ impl Encode for Vec<IpOption> {
 impl Encode for IpFlags {
     fn encode<E: Encoder>(&self) -> Vec<u8> {
         vec![]
+    }
+}
+
+impl Encode for Vec<u8> {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_vec(self)
     }
 }
 
@@ -755,6 +775,11 @@ pub struct Ip {
     #[nproto(default = "127.0.0.1")]
     pub dst: Value<Ipv4Address>,
     pub options: Vec<IpOption>,
+}
+
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+pub struct raw {
+    data: Vec<u8>,
 }
 
 impl Layer for String {
