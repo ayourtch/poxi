@@ -644,61 +644,6 @@ pub struct Ip {
     pub options: Vec<IpOption>,
 }
 
-impl Ip {
-    /*
-    pub fn version<T: Into<u8>>(mut self, version: T) -> Self {
-        let version = version.into();
-        self.version = version;
-        self
-    }
-    pub fn ihl<T: Into<Option<u8>>>(mut self, ihl: T) -> Self {
-        let ihl = ihl.into();
-        self.ihl = ihl;
-        self
-    }
-    pub fn id(mut self, id: u16) -> Self {
-        self.id = id;
-        self
-    }
-    pub fn src<T: Into<Ipv4Address>>(mut self, src: T) -> Self {
-        let src = src.into();
-        self.src = src;
-        self
-    }
-    pub fn dst<T: Into<Ipv4Address>>(mut self, dst: T) -> Self {
-        let dst = dst.into();
-        self.dst = dst;
-        self
-    }
-    pub fn options<T: Into<Vec<IpOption>>>(mut self, options: T) -> Self {
-        let options = options.into();
-        self.options = options;
-        self
-    }
-    */
-}
-
-/*
-impl Default for Ip {
-    fn default() -> Self {
-        Ip {
-            version: Value::Set(4),
-            ihl: Value::Auto,
-            tos: Value::Set(0),
-            len: Value::Auto,
-            id: Value::Set(1),
-            flags: Default::default(),
-            frag: Value::Set(0),
-            ttl: 64,
-            proto: 0, // hopopt
-            chksum: Value::Auto,
-            src: Value::Set(Ipv4Address::new(127, 0, 0, 1)),
-            dst: Value::Set(Ipv4Address::new(127, 0, 0, 1)),
-            options: vec![],
-        }
-    }
-}
-*/
 
 impl Layer for String {
     fn embox(self) -> Box<dyn Layer> {

@@ -272,7 +272,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 let mut csum = 3;
                 if my_index > 0 {
                     if let Some(ip) = (*stack).item_at(IP!(), my_index - 1) {
-                        csum = 1231; // ip.ttl;
+                        csum = 1231;
                     }
                 }
                 out.chksum = Value::Set(csum as u16);
@@ -357,29 +357,12 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
         }
 
-        // impl Default for #name { }
         impl Default for #name {
             fn default() -> Self {
                 #name {
                     #(
                         #def_idents
                     )*
-
-                    /*
-            version: Value::Set(4),
-            ihl: Value::Auto,
-            tos: Value::Set(0),
-            len: Value::Auto,
-            id: Value::Set(1),
-            flags: Default::default(),
-            frag: Value::Set(0),
-            ttl: 64,
-            proto: 0, // hopopt
-            chksum: Value::Auto,
-            src: Value::Set(Ipv4Address::new(127, 0, 0, 1)),
-            dst: Value::Set(Ipv4Address::new(127, 0, 0, 1)),
-            options: vec![],
-            */
                 }
             }
         }
