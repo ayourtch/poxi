@@ -38,7 +38,67 @@ pub trait Encoder {
     fn encode_vec(v1: &Vec<u8>) -> Vec<u8>;
 }
 
+pub trait Decoder {
+    fn decode_u8(buf: &[u8]) -> Option<(u8, usize)>;
+    fn decode_u16(buf: &[u8]) -> Option<(u16, usize)>;
+    fn decode_u32(buf: &[u8]) -> Option<(u32, usize)>;
+    fn decode_u64(buf: &[u8]) -> Option<(u64, usize)>;
+    fn decode_vec(buf: &[u8], len: usize) -> Option<(Vec<u8>, usize)>;
+}
+
 pub struct BinaryBigEndian;
+
+impl Decoder for BinaryBigEndian {
+    fn decode_u8(buf: &[u8]) -> Option<(u8, usize)> {
+        if buf.len() >= 1 {
+            Some((buf[0], 1))
+        } else {
+            None
+        }
+    }
+    fn decode_u16(buf: &[u8]) -> Option<(u16, usize)> {
+        if buf.len() >= 2 {
+            let v = buf[0] as u16;
+            let v = v << 8 + buf[1];
+            Some((v, 2))
+        } else {
+            None
+        }
+    }
+    fn decode_u32(buf: &[u8]) -> Option<(u32, usize)> {
+        if buf.len() >= 4 {
+            let v = buf[0] as u32;
+            let v = v << 8 + buf[1];
+            let v = v << 8 + buf[2];
+            let v = v << 8 + buf[3];
+            Some((v, 4))
+        } else {
+            None
+        }
+    }
+    fn decode_u64(buf: &[u8]) -> Option<(u64, usize)> {
+        if buf.len() >= 8 {
+            let v = buf[0] as u64;
+            let v = v << 8 + buf[1];
+            let v = v << 8 + buf[2];
+            let v = v << 8 + buf[3];
+            let v = v << 8 + buf[4];
+            let v = v << 8 + buf[5];
+            let v = v << 8 + buf[6];
+            let v = v << 8 + buf[7];
+            Some((v, 8))
+        } else {
+            None
+        }
+    }
+    fn decode_vec(buf: &[u8], len: usize) -> Option<(Vec<u8>, usize)> {
+        if buf.len() >= len {
+            Some((buf[0..len].to_vec(), len))
+        } else {
+            None
+        }
+    }
+}
 
 impl Encoder for BinaryBigEndian {
     fn encode_u8(v1: u8) -> Vec<u8> {
@@ -70,6 +130,52 @@ impl Encoder for BinaryBigEndian {
     }
     fn encode_vec(v1: &Vec<u8>) -> Vec<u8> {
         v1.clone()
+    }
+}
+
+pub trait Decode {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)>
+    where
+        Self: Sized;
+}
+
+impl Decode for u8 {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        D::decode_u8(buf)
+    }
+}
+
+impl Decode for u16 {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        D::decode_u16(buf)
+    }
+}
+
+impl Decode for u32 {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        D::decode_u32(buf)
+    }
+}
+
+impl Decode for u64 {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        D::decode_u64(buf)
+    }
+}
+
+impl Decode for Ipv4Address {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        D::decode_u32(buf).map(|(a, i)| (Self::from(a), i))
+    }
+}
+
+impl Decode for MacAddr {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        if let Some((mac_vec, count)) = D::decode_vec(buf, 6) {
+            Some((MacAddr::from(&mac_vec[..]), count))
+        } else {
+            None
+        }
     }
 }
 
@@ -344,6 +450,12 @@ impl From<&str> for Ipv4Address {
     fn from(s: &str) -> Self {
         let res = s.parse().unwrap();
         Ipv4Address(res)
+    }
+}
+
+impl From<u32> for Ipv4Address {
+    fn from(u: u32) -> Self {
+        Ipv4Address(Ipv4Addr::from(u))
     }
 }
 
