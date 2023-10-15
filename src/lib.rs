@@ -636,8 +636,8 @@ pub struct Ip {
     pub flags: Value<IpFlags>,
     pub frag: Value<u16>,
     #[nproto(default = 64)]
-    pub ttl: u8,
-    pub proto: u8,
+    pub ttl: Value<u8>,
+    pub proto: Value<u8>,
     pub chksum: Value<u16>,
     pub src: Value<Ipv4Address>,
     pub dst: Value<Ipv4Address>,

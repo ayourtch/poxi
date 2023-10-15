@@ -272,7 +272,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 let mut csum = 3;
                 if my_index > 0 {
                     if let Some(ip) = (*stack).item_at(IP!(), my_index - 1) {
-                        csum = ip.ttl;
+                        csum = 1231; // ip.ttl;
                     }
                 }
                 out.chksum = Value::Set(csum as u16);
