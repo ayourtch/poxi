@@ -15,6 +15,7 @@ extern crate itertools;
 extern crate mac_address;
 
 pub struct ParseNumberError;
+use crate::Value::Random;
 
 macro_rules! INT_TYPE {
     ($TT:ident: $BT:ident) => {
@@ -555,23 +556,42 @@ impl <'a> Eq for LayerStack<'a> {
 }
 */
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(encoder(BinaryBigEndian))]
 pub struct ether {
-    #[nproto(auto = "ff:ff:ff:ff:ff:ff", default = Auto)]
+    #[nproto(fill = "ff:ff:ff:ff:ff:ff", default = "01:02:03:04:05:06")]
     pub dst: Value<MacAddr>,
-    #[nproto(auto = "00:00:00:00:00:00", default = Auto)]
+    #[nproto(fill = "00:00:00:00:00:00")]
     pub src: Value<MacAddr>,
     pub len: Value<u16>,
     pub crc: Value<u32>,
 }
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Default)]
+fn encode_csum(
+    layer: &dyn Layer,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_data: &EncodingVecVec,
+) -> u16 {
+    0xffff
+}
+
+fn fill_udp_sport(
+    layer: &mut dyn Layer,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_data: &EncodingVecVec,
+) -> u16 {
+    0xffff
+}
+
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Udp {
-    #[nproto(auto = Random, default = Auto)]
+    #[nproto(fill = fill_udp_sport)]
     pub sport: Value<u16>,
     pub dport: Value<u16>,
     pub len: Value<u16>,
+    #[nproto(auto = encode_csum)]
     pub chksum: Value<u16>,
 }
 
@@ -606,13 +626,16 @@ impl FromStr for IpOption {
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {
+    #[nproto(default = 4)]
     pub version: Value<u8>,
     pub ihl: Value<u8>,
     pub tos: Value<u8>,
     pub len: Value<u16>,
+    #[nproto(default = Random)]
     pub id: Value<u16>,
     pub flags: Value<IpFlags>,
     pub frag: Value<u16>,
+    #[nproto(default = 64)]
     pub ttl: u8,
     pub proto: u8,
     pub chksum: Value<u16>,
@@ -655,6 +678,7 @@ impl Ip {
     */
 }
 
+/*
 impl Default for Ip {
     fn default() -> Self {
         Ip {
@@ -674,6 +698,7 @@ impl Default for Ip {
         }
     }
 }
+*/
 
 impl Layer for String {
     fn embox(self) -> Box<dyn Layer> {
