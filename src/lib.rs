@@ -642,6 +642,7 @@ pub struct ether {
     pub dst: Value<MacAddr>,
     #[nproto(fill = "00:00:00:00:00:00")]
     pub src: Value<MacAddr>,
+    #[nproto(next: ETHERTYPE_LAYERS => Ethertype)]
     pub etype: Value<u16>,
     #[nproto(fill = fill_crc)]
     pub crc: Value<u32>,

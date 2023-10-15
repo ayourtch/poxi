@@ -32,6 +32,7 @@ struct NetprotoStructField {
     fill: Option<syn::Expr>,
     auto: Option<TokenStream>,
     encode: Option<syn::Expr>,
+    next: Option<(syn::Ident, syn::Ident)>,
 }
 
 macro_rules! vec_newtype {
@@ -555,6 +556,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                         let etype: u16 = (buf[12] as u16) * 256 + buf[13] as u16;
                         let layer = Ether!().dst(&buf[0..6]).src(&buf[6..12]).etype(etype);
                         let mut layers = vec![layer.embox()];
+
                         if let Some(next) = (*ETHERTYPE_LAYERS_BY_Ethertype).get(&etype) {
                             let decode = (next.MakeLayer)().decode(&buf[14..]);
                             let mut down_layers = decode.layers;
@@ -901,6 +903,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                         let mut nproto_fill = None::<syn::Expr>;
                         let mut nproto_auto = None::<TokenStream>;
                         let mut nproto_encode = None::<syn::Expr>;
+                        let mut nproto_next = None::<(syn::Ident, syn::Ident)>;
                         let name = f.ident.clone().unwrap();
                         // eprintln!("FIELD: {:#?}", f.ty);
                         for attr in &f.attrs {
@@ -920,6 +923,15 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                         let eq_token: Option<Token![=]> = meta.input.parse()?;
                                         let val_expr: syn::Expr = meta.input.parse()?;
                                         nproto_auto = Some(val_expr.to_token_stream());
+                                        return Ok(());
+                                    }
+
+                                    if meta.path.is_ident("next") {
+                                        let eq_token: Option<Token![:]> = meta.input.parse()?;
+                                        let nxt: syn::Ident = meta.input.parse()?;
+                                        let eq_token: Option<Token![=>]> = meta.input.parse()?;
+                                        let nxt_key: syn::Ident = meta.input.parse()?;
+                                        nproto_next = Some((nxt, nxt_key));
                                         return Ok(());
                                     }
 
@@ -1004,6 +1016,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     auto: nproto_auto,
                                     fill: nproto_fill,
                                     encode: nproto_encode,
+                                    next: nproto_next,
                                 });
                             }
                             Type::Path(typepath)
@@ -1019,6 +1032,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     auto: nproto_auto,
                                     fill: nproto_fill,
                                     encode: nproto_encode,
+                                    next: nproto_next,
                                 });
                             }
                             Type::Path(typepath)
@@ -1034,6 +1048,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     auto: nproto_auto,
                                     fill: nproto_fill,
                                     encode: nproto_encode,
+                                    next: nproto_next,
                                 });
                             }
                             Type::Path(typepath) => {
@@ -1047,6 +1062,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     auto: nproto_auto,
                                     fill: nproto_fill,
                                     encode: nproto_encode,
+                                    next: nproto_next,
                                 });
                             }
                             _ => {
