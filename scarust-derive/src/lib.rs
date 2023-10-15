@@ -350,13 +350,89 @@ fn capitalize(s: &str) -> String {
     }
 }
 
+#[derive(Debug, Clone)]
+struct LayerRegistryEntry {
+    name: syn::Ident,
+    place: syn::Ident,
+    key: syn::Ident,
+    value: syn::Expr,
+}
+
+impl ToTokens for LayerRegistryEntry {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.name.clone();
+        let macroname = Ident::new(&capitalize(&format!("{}", &name)), Span::call_site());
+        let make_name_layer = Ident::new(&format!("make_{}_layer", &name), Span::call_site());
+        let desc_name = Ident::new(&format!("{}_Item", &self.place), Span::call_site());
+        let place = self.place.clone();
+        let record_name = Ident::new(
+            &format!("{}_{}_RegistrationRecord", &name, &place),
+            Span::call_site(),
+        );
+        let key = self.key.clone();
+        let value = self.value.clone();
+        let tk = quote! {
+            #[distributed_slice(#place)]
+            static #record_name: #desc_name = #desc_name {
+                Name: stringify!(#macroname),
+                #key: #value,
+                MakeLayer: #make_name_layer,
+            };
+        };
+        tokens.extend(tk);
+    }
+}
+
+#[derive(Debug, Clone)]
+struct LayerRegistry {
+    place: syn::Ident,
+    key: syn::Ident,
+    value: syn::Ident,
+}
+impl ToTokens for LayerRegistry {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let desc_name = Ident::new(&format!("{}_Item", &self.place), Span::call_site());
+        let layers_by_key_name = Ident::new(
+            &format!("{}_BY_{}", &self.place, &self.key),
+            Span::call_site(),
+        );
+        let place = self.place.clone();
+        let key = self.key.clone();
+        let value = self.value.clone();
+        let tk = quote! {
+            #[derive(PartialEq, Clone, Eq, Debug)]
+            pub struct #desc_name {
+                pub Name: &'static str,
+                pub #key: #value,
+                pub MakeLayer: fn() -> Box<dyn Layer>,
+            }
+            #[distributed_slice]
+            pub static #place: [#desc_name];
+
+            lazy_static! {
+                pub static ref #layers_by_key_name: HashMap<#value, #desc_name> = {
+                    let mut m = HashMap::new();
+                    for ll in #place {
+                        m.insert(ll.#key, (*ll).clone());
+                    }
+                    m
+                };
+            }
+
+        };
+        tokens.extend(tk);
+    }
+}
+
 #[proc_macro_derive(NetworkProtocol, attributes(nproto))]
 pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     use std::str::FromStr;
-    use syn::{parenthesized, parse_quote, token, ItemStruct, LitInt};
+    use syn::{parenthesized, parse_quote, token, ItemStruct, LitInt, Token};
 
     let mut nproto_align = None::<usize>;
     let mut nproto_packed = None::<usize>;
+    let mut nproto_register: Vec<LayerRegistryEntry> = vec![];
+    let mut nproto_registries: Vec<LayerRegistry> = vec![];
     let default_encoder: TokenStream = "BinaryBigEndian".parse().unwrap();
     let mut nproto_encoder = default_encoder;
 
@@ -367,8 +443,47 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let input = syn::parse_macro_input!(input as DeriveInput);
 
     for attr in &input.attrs {
+        let name = input.ident.clone();
         if attr.path().is_ident("nproto") {
             attr.parse_nested_meta(|meta| {
+                // #[nproto(register(PLACE, Key = _expr_))
+                if meta.path.is_ident("register") {
+                    let content;
+                    parenthesized!(content in meta.input);
+                    println!("REGISTER: {:?}", &content);
+                    let place: syn::Ident = content.parse()?;
+                    println!("PLACE: {:?}", &place);
+                    let comma_token: Option<Token![,]> = content.parse()?;
+                    let key: syn::Ident = content.parse()?;
+                    println!("KEY: {:?}", &key);
+                    let eq_token: Option<Token![=]> = content.parse()?;
+                    let value: syn::Expr = content.parse()?;
+                    println!("VAL: {:?}", &value);
+                    let name = name.clone();
+                    nproto_register.push(LayerRegistryEntry {
+                        name,
+                        place,
+                        key,
+                        value,
+                    });
+                    return Ok(());
+                }
+                if meta.path.is_ident("registry") {
+                    let content;
+                    parenthesized!(content in meta.input);
+                    println!("REGISTRY: {:?}", &content);
+                    let place: syn::Ident = content.parse()?;
+                    println!("PLACE: {:?}", &place);
+                    let comma_token: Option<Token![,]> = content.parse()?;
+                    let key: syn::Ident = content.parse()?;
+                    println!("KEY: {:?}", &key);
+                    let eq_token: Option<Token![:]> = content.parse()?;
+                    let value: syn::Ident = content.parse()?;
+                    println!("VAL: {:?}", &value);
+                    let name = name.clone();
+                    nproto_registries.push(LayerRegistry { place, key, value });
+                    return Ok(());
+                }
                 // #[nproto(align(N))]
                 if meta.path.is_ident("align") {
                     let content;
@@ -413,7 +528,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         }
     }
 
-    let name = input.ident;
+    let name = input.ident.clone();
     let macroname = Ident::new(&capitalize(&format!("{}", &name)), Span::call_site());
     let make_name_layer = Ident::new(&format!("make_{}_layer", &name), Span::call_site());
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
@@ -440,7 +555,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                         let etype: u16 = (buf[12] as u16) * 256 + buf[13] as u16;
                         let layer = Ether!().dst(&buf[0..6]).src(&buf[6..12]).etype(etype);
                         let mut layers = vec![layer.embox()];
-                        if let Some(next) = (*LAYERS_BY_ETHERTYPE).get(&etype) {
+                        if let Some(next) = (*ETHERTYPE_LAYERS_BY_Ethertype).get(&etype) {
                             let decode = (next.MakeLayer)().decode(&buf[14..]);
                             let mut down_layers = decode.layers;
                             layers.append(&mut down_layers);
@@ -480,6 +595,10 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     };
 
     let mut tokens = quote! {
+
+        #( #nproto_registries )*
+
+        #( #nproto_register )*
 
         impl<T: Layer> Div<T> for #name {
             type Output = LayerStack;

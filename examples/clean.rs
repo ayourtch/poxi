@@ -23,7 +23,7 @@ fn main() {
     let bytes = filled.encode();
     println!("Encoded bytes: {:02x?}", &bytes);
 
-    let ip = &LAYERS_BY_IANA_PROTO[&4];
+    let ip = &IANA_LAYERS_BY_Proto[&4];
     println!("IP: {:?}", ip);
     let ll = (ip.MakeLayer)();
 

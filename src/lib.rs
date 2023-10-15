@@ -24,25 +24,11 @@ use rand::Rng;
 
 use linkme::distributed_slice;
 
-#[derive(PartialEq, Clone, Eq, Debug)]
-pub struct IanaLayerDesc {
-    pub Name: &'static str,
-    pub Proto: u8,
-    pub MakeLayer: fn() -> Box<dyn Layer>,
-}
-
-#[distributed_slice]
-pub static IANA_LAYERS: [IanaLayerDesc];
-
-#[derive(PartialEq, Clone, Eq, Debug)]
-pub struct EthertypeLayerDesc {
-    pub Name: &'static str,
-    pub Ethertype: u16,
-    pub MakeLayer: fn() -> Box<dyn Layer>,
-}
-
-#[distributed_slice]
-pub static ETHERTYPE_LAYERS: [EthertypeLayerDesc];
+#[derive(NetworkProtocol, Debug, Clone)]
+#[nproto(registry(ETHERTYPE_LAYERS, Ethertype: u16))]
+#[nproto(registry(IANA_LAYERS, Proto: u8))]
+/* Only here as a target of derive + attribute macros to make registries */
+struct protocolRegistriesSentinel;
 
 pub trait Encoder {
     fn encode_u8(v1: u8) -> Vec<u8>;
@@ -674,14 +660,8 @@ fn fill_udp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16
     0xffff
 }
 
-#[distributed_slice(IANA_LAYERS)]
-static UdpRecord: IanaLayerDesc = IanaLayerDesc {
-    Name: "UDP",
-    Proto: 17,
-    MakeLayer: make_Udp_layer,
-};
-
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(IANA_LAYERS, Proto = 17))]
 pub struct Udp {
     #[nproto(fill = fill_udp_sport)]
     pub sport: Value<u16>,
@@ -751,38 +731,9 @@ fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Valu
     Value::Auto
 }
 
-lazy_static! {
-    pub static ref LAYERS_BY_IANA_PROTO: HashMap<u8, IanaLayerDesc> = {
-        let mut m = HashMap::new();
-        for ll in IANA_LAYERS {
-            m.insert(ll.Proto, (*ll).clone());
-        }
-        m
-    };
-    pub static ref LAYERS_BY_ETHERTYPE: HashMap<u16, EthertypeLayerDesc> = {
-        let mut m = HashMap::new();
-        for ll in ETHERTYPE_LAYERS {
-            m.insert(ll.Ethertype, (*ll).clone());
-        }
-        m
-    };
-}
-
-#[distributed_slice(IANA_LAYERS)]
-static IpRecord: IanaLayerDesc = IanaLayerDesc {
-    Name: "IP",
-    Proto: 4,
-    MakeLayer: make_Ip_layer,
-};
-
-#[distributed_slice(ETHERTYPE_LAYERS)]
-static EthertypeIpRecord: EthertypeLayerDesc = EthertypeLayerDesc {
-    Name: "IP",
-    Ethertype: 0x800,
-    MakeLayer: make_Ip_layer,
-};
-
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
+#[nproto(register(IANA_LAYERS, Proto = 4))]
 pub struct Ip {
     #[nproto(default = 4, encode = Skip)]
     pub version: Value<u8>,
