@@ -143,7 +143,13 @@ impl ToTokens for FillNetprotoStructField {
                         let #varname: #fixed_typ = rng.gen();
                         out = out.#name(#varname);
                     },
-                    _ => { },
+                    Value::Func(x) => {
+                        let #varname: #fixed_typ = x();
+                        out = out.#name(#varname);
+                    },
+                    Value::Set(x) => {
+                        // Already taken care by clone
+                    }
                 }
             }
         } else {
@@ -154,13 +160,19 @@ impl ToTokens for FillNetprotoStructField {
                             let #varname: #fixed_typ = Default::default();
                             out = out.#name(#varname);
                         },
+                        Value::Func(x) => {
+                            let #varname: #fixed_typ = x();
+                            out = out.#name(#varname);
+                        },
                         Value::Random => {
                             use rand::Rng;
                             let mut rng = rand::thread_rng();
                             let #varname: #fixed_typ = rng.gen();
                             out = out.#name(#varname);
                         },
-                        _ => {},
+                        Value::Set(x) => {
+                            // Already taken care by clone
+                        },
                     }
                 }
             } else {
@@ -392,6 +404,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             let ver: u8 = match self.version {
                 Value::Random => rng.gen::<u8>() & 0xf,
                 Value::Set(x) => x & 0xf,
+                Value::Func(x) => x(),
                 Value::Auto => 0x4,
             };
             let ihl: u8 = 5;
@@ -408,6 +421,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             let len = match self.len {
                 Value::Random => rng.gen(),
                 Value::Set(x) => x,
+                Value::Func(x) => x(),
                 Value::Auto => if my_index+1 < encoded_data.len() {
                     let l = encoded_data[my_index+1].len();
                     if l < 65536-8 {

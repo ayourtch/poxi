@@ -77,6 +77,7 @@ INT_TYPE!(U8: u8);
 pub enum Value<T> {
     Auto,
     Random,
+    Func(fn() -> T),
     Set(T),
 }
 
@@ -86,6 +87,7 @@ impl<T: Copy> Value<T> {
             Self::Auto => panic!("can not return auto value"),
             Self::Random => unimplemented!(),
             Self::Set(x) => *x,
+            Self::Func(f) => f(),
         }
     }
 }
@@ -102,6 +104,7 @@ impl<T: std::fmt::Display> fmt::Display for Value<T> {
             Self::Auto => f.write_str(&format!("Auto")),
             Self::Random => f.write_str(&format!("Random")),
             Self::Set(x) => x.fmt(f),
+            Self::Func(x) => f.write_str(&format!("Fn: {:?}", x)),
         }
     }
 }
@@ -112,6 +115,7 @@ impl<T: std::fmt::Debug> fmt::Debug for Value<T> {
             Self::Auto => f.write_str(&format!("Auto")),
             Self::Random => f.write_str(&format!("Random")),
             Self::Set(x) => f.write_str(&format!("{:?}", &x)),
+            Self::Func(x) => f.write_str(&format!("Fn: {:?}", x)),
         }
     }
 }
@@ -205,6 +209,7 @@ impl From<Value<MacAddr>> for MacAddr {
                 unimplemented!();
             }
             Value::Set(x) => x.clone(),
+            Value::Func(x) => x(),
         }
     }
 }
