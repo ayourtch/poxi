@@ -29,7 +29,7 @@ fn main() {
 
     let ll = LayerStack::gg::<Ip>(ll).src("1.1.1.1");
     println!("IP by name: {:?}", ll);
-    let x = Ether!().decode("AAAAAABBBBBB\x08\x0012345678901234567890123456789012a".as_bytes());
+    let x = Ether!().decode("AAAAAABBBBBB\x08\x0012345678901234567890123456789012a".as_bytes()).unwrap();
     println!("x: {:?}", &x);
     println!("xb: {:?}", x.encode());
 }

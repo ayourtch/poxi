@@ -2,7 +2,7 @@
 fn decode_test_1() {
     use scarust::*;
 
-    let x = Ether!().decode("AAAAAABBBBBB\x08\x0012345678901234567890123456789012a".as_bytes());
+    let x = Ether!().decode("AAAAAABBBBBB\x08\x0012345678901234567890123456789012a".as_bytes()).unwrap();
     println!("decode result: {:?}", &x);
     assert_eq!(x.indices_of(Ether!()), vec![0]);
     assert_eq!(x.indices_of(IP!()), vec![1]);
@@ -18,7 +18,7 @@ fn decode_test_1() {
 fn decode_test_raw() {
     use scarust::*;
 
-    let x = Ether!().decode("AAAAAABBBBBB\x08\x0112345678901234567890123456789012a".as_bytes());
+    let x = Ether!().decode("AAAAAABBBBBB\x08\x0112345678901234567890123456789012a".as_bytes()).unwrap();
     println!("decode result: {:?}", &x);
     assert_eq!(x.indices_of(Ether!()), vec![0]);
     assert_eq!(x.indices_of(IP!()), vec![]);

@@ -59,7 +59,7 @@ impl Decoder for BinaryBigEndian {
     fn decode_u16(buf: &[u8]) -> Option<(u16, usize)> {
         if buf.len() >= 2 {
             let v = buf[0] as u16;
-            let v = v << 8 + buf[1];
+            let v = (v << 8) + buf[1] as u16;
             Some((v, 2))
         } else {
             None
@@ -68,9 +68,9 @@ impl Decoder for BinaryBigEndian {
     fn decode_u32(buf: &[u8]) -> Option<(u32, usize)> {
         if buf.len() >= 4 {
             let v = buf[0] as u32;
-            let v = v << 8 + buf[1];
-            let v = v << 8 + buf[2];
-            let v = v << 8 + buf[3];
+            let v = (v << 8) + buf[1] as u32;
+            let v = (v << 8) + buf[2] as u32;
+            let v = (v << 8) + buf[3] as u32;
             Some((v, 4))
         } else {
             None
@@ -79,13 +79,13 @@ impl Decoder for BinaryBigEndian {
     fn decode_u64(buf: &[u8]) -> Option<(u64, usize)> {
         if buf.len() >= 8 {
             let v = buf[0] as u64;
-            let v = v << 8 + buf[1];
-            let v = v << 8 + buf[2];
-            let v = v << 8 + buf[3];
-            let v = v << 8 + buf[4];
-            let v = v << 8 + buf[5];
-            let v = v << 8 + buf[6];
-            let v = v << 8 + buf[7];
+            let v = (v << 8) + buf[1] as u64;
+            let v = (v << 8) + buf[2] as u64;
+            let v = (v << 8) + buf[3] as u64;
+            let v = (v << 8) + buf[4] as u64;
+            let v = (v << 8) + buf[5] as u64;
+            let v = (v << 8) + buf[6] as u64;
+            let v = (v << 8) + buf[7] as u64;
             Some((v, 8))
         } else {
             None
@@ -713,8 +713,8 @@ pub trait Layer: Debug + mopa::Any + New {
         }
         LayerStack { layers }
     }
-    fn decode(&self, buf: &[u8]) -> LayerStack {
-        self.decode_as_raw(buf)
+    fn decode(&self, buf: &[u8]) -> Option<LayerStack> {
+        Some(self.decode_as_raw(buf))
     }
 }
 
@@ -756,8 +756,8 @@ pub struct ether {
     pub src: Value<MacAddr>,
     #[nproto(next: ETHERTYPE_LAYERS => Ethertype)]
     pub etype: Value<u16>,
-    #[nproto(fill = fill_crc)]
-    pub crc: Value<u32>,
+    //#[nproto(fill = fill_crc)]
+    // pub crc: Value<u32>,
 }
 
 fn encode_csum(
@@ -856,6 +856,7 @@ pub struct Ip {
     pub len: Value<u16>,
     #[nproto(default = Random)]
     pub id: Value<u16>,
+    #[nproto(decode = Skip)]
     pub flags: Value<IpFlags>,
     pub frag: Value<u16>,
     #[nproto(default = 64)]
@@ -866,10 +867,12 @@ pub struct Ip {
     pub src: Value<Ipv4Address>,
     #[nproto(default = "127.0.0.1")]
     pub dst: Value<Ipv4Address>,
+    #[nproto(decode = Skip)]
     pub options: Vec<IpOption>,
 }
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(decode_suppress)]
 pub struct raw {
     data: Vec<u8>,
 }

@@ -32,6 +32,7 @@ struct NetprotoStructField {
     fill: Option<syn::Expr>,
     auto: Option<TokenStream>,
     encode: Option<syn::Expr>,
+    decode: Option<syn::Expr>,
     next: Option<(syn::Ident, syn::Ident)>,
 }
 
@@ -49,6 +50,8 @@ struct ImplDefaultNetprotoStructField(NetprotoStructField);
 struct FieldMethodsNetprotoStructField(NetprotoStructField);
 struct FillNetprotoStructField(NetprotoStructField);
 struct EncodeNetprotoStructField(NetprotoStructField);
+struct DecodeNetprotoStructField(NetprotoStructField);
+struct ChainDecodeNetprotoStructField(NetprotoStructField);
 
 use proc_macro2::{Punct, Spacing, Span, TokenStream, TokenTree};
 use quote::{ToTokens, TokenStreamExt};
@@ -113,6 +116,85 @@ impl ToTokens for EncodeNetprotoStructField {
         tokens.extend(tk2);
     }
 }
+
+impl ToTokens for DecodeNetprotoStructField {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.0.name.clone();
+        let varname = Ident::new(&format!("__{}", &name), Span::call_site());
+        let conv = self.0.conv.clone();
+        let typ = self.0.ty.clone();
+        let fixed_typ: TokenStream = if self.0.is_value {
+            let iter = typ.clone().into_iter().skip(2);
+            let len = iter.clone().collect::<Vec<_>>().len();
+            iter.take(len - 1).collect()
+        } else {
+            typ.clone()
+        };
+        let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
+        let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
+
+        let tk2 = quote! {
+            let (#varname, delta) = #fixed_typ::decode::<BinaryBigEndian>(&buf[ci..])?;
+            ci += delta;
+            layer = layer.#name(#varname);
+        };
+        let tk2 = if let Some(decode_expr) = &self.0.decode {
+            if &decode_expr.to_token_stream().to_string() == "Skip" {
+                quote! {}
+            } else {
+                quote! { #tk2 }
+            }
+        } else {
+            quote! { #tk2 }
+        };
+        tokens.extend(tk2);
+    }
+}
+
+impl ToTokens for ChainDecodeNetprotoStructField {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.0.name.clone();
+        let varname = Ident::new(&format!("__{}", &name), Span::call_site());
+        let conv = self.0.conv.clone();
+        let typ = self.0.ty.clone();
+        let fixed_typ: TokenStream = if self.0.is_value {
+            let iter = typ.clone().into_iter().skip(2);
+            let len = iter.clone().collect::<Vec<_>>().len();
+            iter.take(len - 1).collect()
+        } else {
+            typ.clone()
+        };
+        let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
+        let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
+
+        let tk2 = if let Some((next_tbl, next_key)) = &self.0.next {
+            let registry_lookup_name = Ident::new(
+                &format!("{}_BY_{}", &next_tbl, &next_key),
+                Span::call_site(),
+            );
+            quote! {
+                if let Some(next) = (*#registry_lookup_name).get(&#varname) {
+                    if let Some(decode) = (next.MakeLayer)().decode(&buf[ci..]) {
+                        let mut down_layers = decode.layers;
+                        layers.append(&mut down_layers);
+                    } else {
+                        let decode = self.decode_as_raw(&buf[ci..]);
+                        let mut down_layers = decode.layers;
+                        layers.append(&mut down_layers);
+                    }
+                } else {
+                    let decode = self.decode_as_raw(&buf[ci..]);
+                    let mut down_layers = decode.layers;
+                    layers.append(&mut down_layers);
+                }
+            }
+        } else {
+            quote! {}
+        };
+        tokens.extend(tk2);
+    }
+}
+
 impl ToTokens for ImplDefaultNetprotoStructField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.0.name.clone();
@@ -435,7 +517,10 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let mut nproto_register: Vec<LayerRegistryEntry> = vec![];
     let mut nproto_registries: Vec<LayerRegistry> = vec![];
     let default_encoder: TokenStream = "BinaryBigEndian".parse().unwrap();
+    let default_decoder: TokenStream = "BinaryBigEndian".parse().unwrap();
     let mut nproto_encoder = default_encoder;
+    let mut nproto_decoder = default_decoder;
+    let mut nproto_decode_suppress = false;
 
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
@@ -447,6 +532,10 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         let name = input.ident.clone();
         if attr.path().is_ident("nproto") {
             attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("decode_suppress") {
+                    nproto_decode_suppress = true;
+                    return Ok(());
+                }
                 // #[nproto(register(PLACE, Key = _expr_))
                 if meta.path.is_ident("register") {
                     let content;
@@ -539,6 +628,8 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let field_methods_idents = vec_newtype!(idents, FieldMethodsNetprotoStructField);
     let fill_fields_idents = vec_newtype!(idents, FillNetprotoStructField);
     let encode_fields_idents = vec_newtype!(idents, EncodeNetprotoStructField);
+    let decode_fields_idents = vec_newtype!(idents, DecodeNetprotoStructField);
+    let chained_fields_idents = vec_newtype!(idents, ChainDecodeNetprotoStructField);
 
     let assign_in_macro = quote! {
                     // $ip.$ident = TryFrom::try_from($e).unwrap();
@@ -546,53 +637,23 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     $ip = $ip.$ident($e);
     };
 
-    let decode_function = match name.to_string().as_str() {
-        "ether" => {
-            quote! {
-                fn decode(&self, buf: &[u8]) -> LayerStack {
-                    use std::collections::HashMap;
+    let decode_function = if nproto_decode_suppress {
+        quote! {}
+    } else {
+        quote! {
+            fn decode(&self, buf: &[u8]) -> Option<LayerStack> {
+                use std::collections::HashMap;
+                let mut ci: usize = 0;
+                let mut layer = #macroname!();
 
-                    if buf.len() >= 14 {
-                        let etype: u16 = (buf[12] as u16) * 256 + buf[13] as u16;
-                        let layer = Ether!().dst(&buf[0..6]).src(&buf[6..12]).etype(etype);
-                        let mut layers = vec![layer.embox()];
+                #(#decode_fields_idents)*
 
-                        if let Some(next) = (*ETHERTYPE_LAYERS_BY_Ethertype).get(&etype) {
-                            let decode = (next.MakeLayer)().decode(&buf[14..]);
-                            let mut down_layers = decode.layers;
-                            layers.append(&mut down_layers);
-                        } else {
-                            let decode = self.decode_as_raw(&buf[14..]);
-                            let mut down_layers = decode.layers;
-                            layers.append(&mut down_layers);
-                        }
-                        LayerStack { layers }
+                let mut layers = vec![layer.embox()];
 
-                    } else {
-                        self.decode_as_raw(buf)
-                    }
-                }
+                #(#chained_fields_idents)*
+
+                Some(LayerStack { layers })
             }
-        }
-        "Ip" => {
-            quote! {
-                fn decode(&self, buf: &[u8]) -> LayerStack {
-                    if buf.len() >= 32 {
-                        let layer = IP!();
-                        let mut layers = vec![layer.embox()];
-                        // down-layer from IP
-                        let decode = IP!().decode(&buf[32..]);
-                        let mut down_layers = decode.layers;
-                        layers.append(&mut down_layers);
-                        LayerStack { layers }
-                    } else {
-                        self.decode_as_raw(buf)
-                    }
-                }
-            }
-        }
-        _ => {
-            quote! {}
         }
     };
 
@@ -904,6 +965,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                         let mut nproto_auto = None::<TokenStream>;
                         let mut nproto_encode = None::<syn::Expr>;
                         let mut nproto_next = None::<(syn::Ident, syn::Ident)>;
+                        let mut nproto_decode = None::<syn::Expr>;
                         let name = f.ident.clone().unwrap();
                         // eprintln!("FIELD: {:#?}", f.ty);
                         for attr in &f.attrs {
@@ -940,6 +1002,14 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                         let eq_token: Option<Token![=]> = meta.input.parse()?;
                                         let val_expr: syn::Expr = meta.input.parse()?;
                                         nproto_encode = Some(val_expr);
+                                        return Ok(());
+                                    }
+
+                                    // #[nproto(decode = _expr_)]
+                                    if meta.path.is_ident("decode") {
+                                        let eq_token: Option<Token![=]> = meta.input.parse()?;
+                                        let val_expr: syn::Expr = meta.input.parse()?;
+                                        nproto_decode = Some(val_expr);
                                         return Ok(());
                                     }
 
@@ -1017,6 +1087,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     fill: nproto_fill,
                                     encode: nproto_encode,
                                     next: nproto_next,
+                                    decode: nproto_decode,
                                 });
                             }
                             Type::Path(typepath)
@@ -1033,6 +1104,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     fill: nproto_fill,
                                     encode: nproto_encode,
                                     next: nproto_next,
+                                    decode: nproto_decode,
                                 });
                             }
                             Type::Path(typepath)
@@ -1049,6 +1121,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     fill: nproto_fill,
                                     encode: nproto_encode,
                                     next: nproto_next,
+                                    decode: nproto_decode,
                                 });
                             }
                             Type::Path(typepath) => {
@@ -1063,6 +1136,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     fill: nproto_fill,
                                     encode: nproto_encode,
                                     next: nproto_next,
+                                    decode: nproto_decode,
                                 });
                             }
                             _ => {
