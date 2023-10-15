@@ -25,4 +25,11 @@ fn main() {
     println!("Filled: {:?}", &filled);
     let bytes = filled.encode();
     println!("Encoded bytes: {:02x?}", &bytes);
+
+    let ip = &LAYERS_BY_NAME["IP"];
+    println!("IP: {:?}", ip);
+    let ll = (ip.MakeLayer)();
+
+    let ll = LayerStack::gg::<Ip>(ll).src("1.1.1.1");
+    println!("IP by name: {:?}", ll);
 }

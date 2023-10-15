@@ -14,10 +14,25 @@ extern crate mopa;
 extern crate itertools;
 extern crate mac_address;
 
+#[macro_use]
+extern crate lazy_static;
+
 pub struct ParseNumberError;
 use crate::Value::Random;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
+
+use linkme::distributed_slice;
+
+#[derive(PartialEq, Clone, Eq, Debug)]
+pub struct LayerDesc {
+    pub Name: &'static str,
+    pub Discriminant: u16,
+    pub MakeLayer: fn() -> Box<dyn Layer>,
+}
+
+#[distributed_slice]
+pub static LAYERS: [LayerDesc];
 
 pub trait Encoder {
     fn encode_u8(v1: u8) -> Vec<u8>;
@@ -410,6 +425,18 @@ pub struct LayerStack {
 }
 
 impl LayerStack {
+    pub fn gg<T: Layer + Clone>(layer: Box<dyn Layer>) -> T {
+        if layer.type_id() == TypeId::of::<T>() {
+            (*layer.downcast_ref::<T>().unwrap()).clone()
+        } else {
+            panic!(
+                " wrong typeid {:?} and {:?}",
+                layer.type_id(),
+                TypeId::of::<T>()
+            );
+        }
+    }
+
     pub fn g<T: Layer>(&self, idx: T) -> &T {
         self[TypeId::of::<T>()].downcast_ref().unwrap()
     }
@@ -605,6 +632,17 @@ fn fill_udp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16
     0xffff
 }
 
+#[distributed_slice(LAYERS)]
+static UdpRecord: LayerDesc = LayerDesc {
+    Name: "UDP",
+    Discriminant: 17,
+    MakeLayer: make_udp_layer,
+};
+
+fn make_udp_layer() -> Box<dyn Layer> {
+    Box::new(UDP!())
+}
+
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Udp {
     #[nproto(fill = fill_udp_sport)]
@@ -673,6 +711,27 @@ fn encode_ver_ihl<E: Encoder>(
 
 fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u8> {
     Value::Auto
+}
+
+lazy_static! {
+    pub static ref LAYERS_BY_NAME: HashMap<&'static str, LayerDesc> = {
+        let mut m = HashMap::new();
+        for ll in LAYERS {
+            m.insert(ll.Name, (*ll).clone());
+        }
+        m
+    };
+}
+
+#[distributed_slice(LAYERS)]
+static IpRecord: LayerDesc = LayerDesc {
+    Name: "IP",
+    Discriminant: 17,
+    MakeLayer: make_ip_layer,
+};
+
+fn make_ip_layer() -> Box<dyn Layer> {
+    Box::new(IP!())
 }
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
