@@ -73,57 +73,6 @@ INT_TYPE!(U16: u16);
 INT_TYPE!(U32: u32);
 INT_TYPE!(U8: u8);
 
-/*
-#[derive(PartialEq, Clone, Eq)]
-pub struct U16(u16);
-
-impl fmt::Debug for U16 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&format!("{:?}", &self.0))
-    }
-}
-
-impl Default for U16 {
-    fn default() -> Self {
-        U16(0)
-    }
-}
-
-impl U16 {
-    pub fn new(val: u16) -> Self {
-        U16(val)
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParseU16Error;
-
-impl FromStr for U16 {
-    type Err = ParseU16Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let res = s.parse();
-        if res.is_err() {
-            return Err(ParseU16Error);
-        }
-        Ok(U16(res.unwrap()))
-    }
-}
-
-impl From<u16> for U16 {
-    fn from(v: u16) -> Self {
-        U16(v)
-    }
-}
-
-
-impl From<&str> for U16 {
-    fn from(s: &str) -> Self {
-        let res = s.parse().unwrap();
-        U16(res)
-    }
-}
-*/
 #[derive(PartialEq, Clone, Eq)]
 pub enum Value<T> {
     Auto,
