@@ -29,6 +29,8 @@ struct NetprotoStructField {
     is_value: bool,
     ty: TokenStream,
     default: Option<TokenStream>,
+    fill: Option<syn::Expr>,
+    auto: Option<TokenStream>,
 }
 
 macro_rules! vec_newtype {
@@ -43,6 +45,7 @@ macro_rules! vec_newtype {
 
 struct ImplDefaultNetprotoStructField(NetprotoStructField);
 struct FieldMethodsNetprotoStructField(NetprotoStructField);
+struct FillNetprotoStructField(NetprotoStructField);
 
 use proc_macro2::{Punct, Spacing, Span, TokenStream, TokenTree};
 use quote::{ToTokens, TokenStreamExt};
@@ -81,6 +84,94 @@ impl ToTokens for ImplDefaultNetprotoStructField {
 
         let tk2 = quote! {
                 #name: Self::#get_def_X(),
+        };
+        tokens.extend(tk2);
+    }
+}
+
+impl ToTokens for FillNetprotoStructField {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.0.name.clone();
+        let varname = Ident::new(&format!("__{}", &name), Span::call_site());
+        let conv = self.0.conv.clone();
+        let typ = self.0.ty.clone();
+        let fixed_typ: TokenStream = if self.0.is_value {
+            let iter = typ.clone().into_iter().skip(2);
+            let len = iter.clone().collect::<Vec<_>>().len();
+            iter.take(len - 1).collect()
+        } else {
+            typ.clone()
+        };
+        let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
+        let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
+
+        let fill_func = if let Some(fill_tok) = self.0.fill.clone() {
+            let fill_expr = {
+                match fill_tok {
+                    syn::Expr::Path(ppp) => {
+                        quote! {
+                            #ppp(&out, stack, my_index)
+                        }
+                    }
+                    x => {
+                        quote! {
+                            #x
+                        }
+                    }
+                }
+            };
+            let set_statement = if self.0.add_conversion {
+                quote! {
+                    let #varname = #fill_expr;
+                    out.#name = Value::Set(#varname.into());
+                }
+            } else {
+                quote! {
+                    let #varname = #fill_expr;
+                    // out = out.#name(#varname);
+                }
+            };
+            quote! {
+                match &out.#name {
+                    Value::Auto => {
+                        // println!("XXX: #name {:?}", &out.#name);
+                        #set_statement
+                    },
+                    Value::Random => {
+                        use rand::Rng;
+                        let mut rng = rand::thread_rng();
+                        let #varname: #fixed_typ = rng.gen();
+                        out = out.#name(#varname);
+                    },
+                    _ => { },
+                }
+            }
+        } else {
+            if self.0.is_value {
+                quote! {
+                    match &out.#name {
+                        Value::Auto => {
+                            let #varname: #fixed_typ = Default::default();
+                            out = out.#name(#varname);
+                        },
+                        Value::Random => {
+                            use rand::Rng;
+                            let mut rng = rand::thread_rng();
+                            let #varname: #fixed_typ = rng.gen();
+                            out = out.#name(#varname);
+                        },
+                        _ => {},
+                    }
+                }
+            } else {
+                quote! {
+                    // non-Value fields are not auto-filled
+                }
+            }
+        };
+
+        let tk2 = quote! {
+            #fill_func
         };
         tokens.extend(tk2);
     }
@@ -272,6 +363,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let idents = netproto_struct_fields(&nproto_encoder, &input.data);
     let def_idents = vec_newtype!(idents, ImplDefaultNetprotoStructField);
     let field_methods_idents = vec_newtype!(idents, FieldMethodsNetprotoStructField);
+    let fill_fields_idents = vec_newtype!(idents, FillNetprotoStructField);
 
     let ayprepare = match name.to_string().as_str() {
         "Udp" => quote! {
@@ -384,7 +476,9 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 Box::new((*self).clone())
             }
             fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack) {
-                #ayprepare
+                let mut out: #name = self.clone();
+                #(#fill_fields_idents)*
+                out_stack.layers.push(Box::new(out))
             }
             fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
                 #ayproto
@@ -629,6 +723,8 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                 Fields::Named(ref fields) => {
                     for f in &fields.named {
                         let mut nproto_default = None::<TokenStream>;
+                        let mut nproto_fill = None::<syn::Expr>;
+                        let mut nproto_auto = None::<TokenStream>;
                         let name = f.ident.clone().unwrap();
                         // eprintln!("FIELD: {:#?}", f.ty);
                         for attr in &f.attrs {
@@ -647,6 +743,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     if meta.path.is_ident("auto") {
                                         let eq_token: Option<Token![=]> = meta.input.parse()?;
                                         let val_expr: syn::Expr = meta.input.parse()?;
+                                        nproto_auto = Some(val_expr.to_token_stream());
                                         return Ok(());
                                     }
 
@@ -654,6 +751,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     if meta.path.is_ident("fill") {
                                         let eq_token: Option<Token![=]> = meta.input.parse()?;
                                         let val_expr: syn::Expr = meta.input.parse()?;
+                                        nproto_fill = Some(val_expr);
                                         return Ok(());
                                     }
 
@@ -719,6 +817,8 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     is_value: true,
                                     ty: typepath.path.clone().to_token_stream(),
                                     default: nproto_default,
+                                    auto: nproto_auto,
+                                    fill: nproto_fill,
                                 });
                             }
                             Type::Path(typepath)
@@ -731,6 +831,8 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     is_value: true,
                                     ty: typepath.path.clone().to_token_stream(),
                                     default: nproto_default,
+                                    auto: nproto_auto,
+                                    fill: nproto_fill,
                                 });
                             }
                             Type::Path(typepath)
@@ -743,6 +845,8 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     is_value: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                     default: nproto_default,
+                                    auto: nproto_auto,
+                                    fill: nproto_fill,
                                 });
                             }
                             Type::Path(typepath) => {
@@ -753,6 +857,8 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     is_value: false,
                                     ty: typepath.path.clone().to_token_stream(),
                                     default: nproto_default,
+                                    auto: nproto_auto,
+                                    fill: nproto_fill,
                                 });
                             }
                             _ => {

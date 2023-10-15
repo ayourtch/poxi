@@ -16,6 +16,8 @@ extern crate mac_address;
 
 pub struct ParseNumberError;
 use crate::Value::Random;
+use rand::distributions::{Distribution, Standard};
+use rand::Rng;
 
 macro_rules! INT_TYPE {
     ($TT:ident: $BT:ident) => {
@@ -244,10 +246,37 @@ impl From<[u8; 6]> for MacAddr {
     }
 }
 
+impl From<Value<MacAddr>> for MacAddr {
+    fn from(v: Value<MacAddr>) -> MacAddr {
+        match v {
+            Value::Auto => {
+                panic!("can not return value of auto mac addr");
+            }
+            Value::Random => {
+                unimplemented!();
+            }
+            Value::Set(x) => x.clone(),
+        }
+    }
+}
+
 impl From<&str> for MacAddr {
     fn from(s: &str) -> Self {
         let res = s.parse().unwrap();
         MacAddr(res)
+    }
+}
+
+impl Distribution<MacAddr> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> MacAddr {
+        MacAddr::new(
+            rng.gen(),
+            rng.gen(),
+            rng.gen(),
+            rng.gen(),
+            rng.gen(),
+            rng.gen(),
+        )
     }
 }
 
@@ -307,6 +336,12 @@ impl From<&str> for Ipv4Address {
     fn from(s: &str) -> Self {
         let res = s.parse().unwrap();
         Ipv4Address(res)
+    }
+}
+
+impl Distribution<Ipv4Address> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Ipv4Address {
+        Ipv4Address::new(rng.gen(), rng.gen(), rng.gen(), rng.gen())
     }
 }
 
@@ -556,14 +591,26 @@ impl <'a> Eq for LayerStack<'a> {
 }
 */
 
+fn fill_dmac(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> MacAddr {
+    MacAddr::from("ff:ff:ff:ff:ff:ff")
+}
+fn fill_crc(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u32 {
+    0x1234
+}
+
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(encoder(BinaryBigEndian))]
 pub struct ether {
-    #[nproto(fill = "ff:ff:ff:ff:ff:ff", default = "01:02:03:04:05:06")]
+    #[nproto(fill = fill_dmac, default = "01:02:03:04:05:06")]
+    // #[nproto(default = "01:02:03:04:05:06")]
+    // #[nproto(fill = fill_dmac)]
+    // #[nproto(default = Random)]
     pub dst: Value<MacAddr>,
     #[nproto(fill = "00:00:00:00:00:00")]
     pub src: Value<MacAddr>,
+    #[nproto(fill = 42)]
     pub len: Value<u16>,
+    #[nproto(fill = fill_crc)]
     pub crc: Value<u32>,
 }
 
@@ -576,12 +623,7 @@ fn encode_csum(
     0xffff
 }
 
-fn fill_udp_sport(
-    layer: &mut dyn Layer,
-    stack: &LayerStack,
-    my_index: usize,
-    encoded_data: &EncodingVecVec,
-) -> u16 {
+fn fill_udp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16 {
     0xffff
 }
 
@@ -602,11 +644,22 @@ pub struct IpFlags {
     // FIXME
 }
 
+impl From<u8> for IpFlags {
+    fn from(v: u8) -> Self {
+        IpFlags {}
+    }
+}
 impl FromStr for IpFlags {
     type Err = ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(IpFlags {})
+    }
+}
+
+impl Distribution<IpFlags> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> IpFlags {
+        IpFlags {}
     }
 }
 
@@ -639,7 +692,9 @@ pub struct Ip {
     pub ttl: Value<u8>,
     pub proto: Value<u8>,
     pub chksum: Value<u16>,
+    #[nproto(default = "127.0.0.1")]
     pub src: Value<Ipv4Address>,
+    #[nproto(default = "127.0.0.1")]
     pub dst: Value<Ipv4Address>,
     pub options: Vec<IpOption>,
 }
