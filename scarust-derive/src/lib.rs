@@ -429,6 +429,24 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     $ip = $ip.$ident($e);
     };
 
+    let decode_function = match name.to_string().as_str() {
+        "ether" => {
+            quote! {
+                fn decode(&self, buf: &[u8]) -> LayerStack {
+                    let layer = Ether!();
+                    let mut layers = vec![layer.embox()];
+                    let mut down_layers = IP!().decode(buf).layers;
+                    layers.append(&mut down_layers);
+                    LayerStack { layers }
+                }
+            }
+        }
+        _ => {
+            quote! {}
+        }
+    };
+
+
     let mut tokens = quote! {
 
         impl<T: Layer> Div<T> for #name {
@@ -479,6 +497,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 #(#encode_fields_idents)*
                 out
             }
+            #decode_function
         }
 
 

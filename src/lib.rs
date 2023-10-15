@@ -595,6 +595,13 @@ pub trait Layer: Debug + mopa::Any + New {
         my_index: usize,
         encoded_layers: &EncodingVecVec,
     ) -> Vec<u8>;
+    fn decode(&self, buf: &[u8]) -> LayerStack {
+        let layer = raw {
+            data: buf.clone().to_vec(),
+        };
+        let layers = vec![layer.embox()];
+        LayerStack { layers }
+    }
 }
 
 mopafy!(Layer);
