@@ -1,12 +1,12 @@
 //use std::any::Any;
-use std::any::TypeId;
+pub use std::any::TypeId;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Debug;
 use std::net::Ipv4Addr;
 use std::ops::Deref;
-use std::ops::Div;
+pub use std::ops::Div;
 use std::ops::Index;
 use std::str::FromStr;
 #[macro_use]
@@ -52,7 +52,7 @@ pub trait Encoder {
     fn encode_vec(v1: &Vec<u8>) -> Vec<u8>;
 }
 
-struct BinaryBigEndian;
+pub struct BinaryBigEndian;
 
 impl Encoder for BinaryBigEndian {
     fn encode_u8(v1: u8) -> Vec<u8> {
@@ -157,7 +157,7 @@ impl<T: Clone + std::default::Default> Value<T>
 where
     Standard: Distribution<T>,
 {
-    fn value(&self) -> T {
+    pub fn value(&self) -> T {
         match self {
             Self::Auto => Default::default(),
             Self::Random => {
@@ -374,7 +374,7 @@ pub trait FromStringHashmap<T>: Default {
     fn from_string_hashmap(hm: HashMap<String, String>) -> T;
 }
 
-fn parse_pair<T>(v: &str) -> T
+pub fn parse_pair<T>(v: &str) -> T
 where
     T: FromStr,
 {
@@ -385,7 +385,7 @@ where
     }
 }
 
-fn parse_pair_as_option<T>(v: &str) -> Option<T>
+pub fn parse_pair_as_option<T>(v: &str) -> Option<T>
 where
     T: FromStr,
 {
@@ -396,7 +396,7 @@ where
     }
 }
 
-fn parse_pair_as_value<T>(v: &str) -> Value<T>
+pub fn parse_pair_as_value<T>(v: &str) -> Value<T>
 where
     T: FromStr,
 {
@@ -407,7 +407,7 @@ where
     }
 }
 
-fn parse_pair_as_vec<T>(v: &str) -> Vec<T>
+pub fn parse_pair_as_vec<T>(v: &str) -> Vec<T>
 where
     T: FromStr,
 {
