@@ -868,6 +868,7 @@ pub struct Ip {
     pub frag: Value<u16>,
     #[nproto(default = 64)]
     pub ttl: Value<u8>,
+    #[nproto(next: IANA_LAYERS => Proto )]
     pub proto: Value<u8>,
     pub chksum: Value<u16>,
     #[nproto(default = "127.0.0.1")]
