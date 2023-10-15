@@ -32,6 +32,7 @@ struct NetprotoStructField {
 }
 
 struct ImplDefaultNetprotoStructField(NetprotoStructField);
+struct FieldMethodsNetprotoStructField(NetprotoStructField);
 
 use proc_macro2::{Punct, Spacing, Span, TokenStream, TokenTree};
 use quote::{ToTokens, TokenStreamExt};
@@ -75,12 +76,12 @@ impl ToTokens for ImplDefaultNetprotoStructField {
     }
 }
 
-impl ToTokens for NetprotoStructField {
+impl ToTokens for FieldMethodsNetprotoStructField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = self.name.clone();
-        let conv = self.conv.clone();
-        let typ = self.ty.clone();
-        let fixed_typ: TokenStream = if self.is_value {
+        let name = self.0.name.clone();
+        let conv = self.0.conv.clone();
+        let typ = self.0.ty.clone();
+        let fixed_typ: TokenStream = if self.0.is_value {
             let iter = typ.clone().into_iter().skip(2);
             let len = iter.clone().collect::<Vec<_>>().len();
             iter.take(len - 1).collect()
@@ -88,7 +89,7 @@ impl ToTokens for NetprotoStructField {
             typ.clone()
         };
 
-        let do_assignment_with_conversion = if self.is_value {
+        let do_assignment_with_conversion = if self.0.is_value {
             quote! {
                 pub fn #name<T: Into<#fixed_typ>>(mut self, #name: T) -> Self {
                     let #name: #fixed_typ = #name.into();
@@ -105,7 +106,7 @@ impl ToTokens for NetprotoStructField {
                 }
             }
         };
-        let do_assignment_without_conversion = if self.is_value {
+        let do_assignment_without_conversion = if self.0.is_value {
             quote! {
                 pub fn #name(mut self, #name: #fixed_typ) -> Self {
                     self.#name = Value::Set(#name);
@@ -121,7 +122,7 @@ impl ToTokens for NetprotoStructField {
             }
         };
 
-        let tk = if self.add_conversion {
+        let tk = if self.0.add_conversion {
             quote! {
                 #do_assignment_with_conversion
             }
@@ -134,9 +135,9 @@ impl ToTokens for NetprotoStructField {
         let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
 
-        let def_val = if let Some(def_tok) = self.default.clone() {
-            if self.add_conversion {
-                if self.is_value {
+        let def_val = if let Some(def_tok) = self.0.default.clone() {
+            if self.0.add_conversion {
+                if self.0.is_value {
                     // FIXME: it is not just "Random in the future"...
                     if def_tok.to_string() == "Random" {
                         quote! { #def_tok.into() }
@@ -147,7 +148,7 @@ impl ToTokens for NetprotoStructField {
                     quote! { #def_tok.into() }
                 }
             } else {
-                if self.is_value {
+                if self.0.is_value {
                     if def_tok.to_string() == "Random" {
                         quote! { #def_tok }
                     } else {
@@ -264,6 +265,11 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         .into_iter()
         .map(|x| ImplDefaultNetprotoStructField(x))
         .collect();
+    let field_methods_idents: Vec<_> = idents
+        .clone()
+        .into_iter()
+        .map(|x| FieldMethodsNetprotoStructField(x))
+        .collect();
 
     let ayprepare = match name.to_string().as_str() {
         "Udp" => quote! {
@@ -352,7 +358,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
 
             #(
-                    #idents
+                    #field_methods_idents
             )*
 
         }
