@@ -46,6 +46,7 @@ macro_rules! vec_newtype {
 struct ImplDefaultNetprotoStructField(NetprotoStructField);
 struct FieldMethodsNetprotoStructField(NetprotoStructField);
 struct FillNetprotoStructField(NetprotoStructField);
+struct EncodeNetprotoStructField(NetprotoStructField);
 
 use proc_macro2::{Punct, Spacing, Span, TokenStream, TokenTree};
 use quote::{ToTokens, TokenStreamExt};
@@ -65,6 +66,36 @@ impl ToTokens for StructField {
                      }
         };
         tokens.extend(tk);
+    }
+}
+impl ToTokens for EncodeNetprotoStructField {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.0.name.clone();
+        let varname = Ident::new(&format!("__{}", &name), Span::call_site());
+        let conv = self.0.conv.clone();
+        let typ = self.0.ty.clone();
+        let fixed_typ: TokenStream = if self.0.is_value {
+            let iter = typ.clone().into_iter().skip(2);
+            let len = iter.clone().collect::<Vec<_>>().len();
+            iter.take(len - 1).collect()
+        } else {
+            typ.clone()
+        };
+        let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
+        let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
+
+        let tk2 = if self.0.is_value {
+            quote! {
+                let #varname: &#fixed_typ = &self.#name.value();
+                out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
+            }
+        } else {
+            quote! {
+                let #varname: &#fixed_typ = &self.#name;
+                out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
+            }
+        };
+        tokens.extend(tk2);
     }
 }
 impl ToTokens for ImplDefaultNetprotoStructField {
@@ -376,6 +407,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let def_idents = vec_newtype!(idents, ImplDefaultNetprotoStructField);
     let field_methods_idents = vec_newtype!(idents, FieldMethodsNetprotoStructField);
     let fill_fields_idents = vec_newtype!(idents, FillNetprotoStructField);
+    let encode_fields_idents = vec_newtype!(idents, EncodeNetprotoStructField);
 
     let ayprepare = match name.to_string().as_str() {
         "Udp" => quote! {
@@ -495,7 +527,9 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 out_stack.layers.push(Box::new(out))
             }
             fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
-                #ayproto
+                let mut out: Vec<u8> = vec![];
+                #(#encode_fields_idents)*
+                out
             }
         }
 

@@ -19,6 +19,97 @@ use crate::Value::Random;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 
+pub trait Encoder {
+    fn encode_u8(v1: u8) -> Vec<u8>;
+    fn encode_u16(v1: u16) -> Vec<u8>;
+    fn encode_u32(v1: u32) -> Vec<u8>;
+    fn encode_u64(v1: u64) -> Vec<u8>;
+}
+
+struct BinaryBigEndian;
+
+impl Encoder for BinaryBigEndian {
+    fn encode_u8(v1: u8) -> Vec<u8> {
+        let o0 = v1;
+        vec![o0]
+    }
+    fn encode_u16(v1: u16) -> Vec<u8> {
+        let o0 = (v1 >> 8) as u8;
+        let o1 = (v1 & 0xff) as u8;
+        vec![o0, o1]
+    }
+    fn encode_u32(v1: u32) -> Vec<u8> {
+        let o0 = ((v1 >> 24) & 0xff) as u8;
+        let o1 = ((v1 >> 16) & 0xff) as u8;
+        let o2 = ((v1 >> 8) & 0xff) as u8;
+        let o3 = ((v1 >> 0) & 0xff) as u8;
+        vec![o0, o1, o2, o3]
+    }
+    fn encode_u64(v1: u64) -> Vec<u8> {
+        let o0 = ((v1 >> 56) & 0xff) as u8;
+        let o1 = ((v1 >> 48) & 0xff) as u8;
+        let o2 = ((v1 >> 40) & 0xff) as u8;
+        let o3 = ((v1 >> 32) & 0xff) as u8;
+        let o4 = ((v1 >> 24) & 0xff) as u8;
+        let o5 = ((v1 >> 16) & 0xff) as u8;
+        let o6 = ((v1 >> 8) & 0xff) as u8;
+        let o7 = ((v1 >> 0) & 0xff) as u8;
+        vec![o0, o1, o2, o3, o4, o5, o6, o7]
+    }
+}
+
+pub trait Encode {
+    fn encode<E: Encoder>(&self) -> Vec<u8>;
+}
+
+impl Encode for u8 {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_u8(*self)
+    }
+}
+
+impl Encode for u16 {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_u16(*self)
+    }
+}
+
+impl Encode for u32 {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_u32(*self)
+    }
+}
+
+impl Encode for u64 {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_u64(*self)
+    }
+}
+
+impl Encode for Ipv4Address {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_u32(u32::from_be_bytes(self.0.octets()))
+    }
+}
+
+impl Encode for MacAddr {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        self.0.bytes().to_vec()
+    }
+}
+
+impl Encode for Vec<IpOption> {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        vec![]
+    }
+}
+
+impl Encode for IpFlags {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        vec![]
+    }
+}
+
 #[derive(PartialEq, Clone, Eq)]
 pub enum Value<T> {
     Auto,
@@ -27,12 +118,19 @@ pub enum Value<T> {
     Set(T),
 }
 
-impl<T: Copy> Value<T> {
+impl<T: Clone + std::default::Default> Value<T>
+where
+    Standard: Distribution<T>,
+{
     fn value(&self) -> T {
         match self {
-            Self::Auto => panic!("can not return auto value"),
-            Self::Random => unimplemented!(),
-            Self::Set(x) => *x,
+            Self::Auto => Default::default(),
+            Self::Random => {
+                use rand::Rng;
+                let mut rng = rand::thread_rng();
+                rng.gen()
+            }
+            Self::Set(x) => x.clone(),
             Self::Func(f) => f(),
         }
     }
