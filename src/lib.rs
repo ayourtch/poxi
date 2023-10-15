@@ -19,60 +19,6 @@ use crate::Value::Random;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 
-macro_rules! INT_TYPE {
-    ($TT:ident: $BT:ident) => {
-        #[derive(PartialEq, Clone, Eq)]
-        pub struct $TT($BT);
-
-        impl std::fmt::Debug for $TT {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.write_str(&format!("{:?}", &self.0))
-            }
-        }
-
-        impl Default for $TT {
-            fn default() -> Self {
-                $TT(0)
-            }
-        }
-
-        impl $TT {
-            pub fn new(val: $BT) -> Self {
-                $TT(val)
-            }
-        }
-
-        impl std::str::FromStr for $TT {
-            type Err = ParseNumberError;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                let res = s.parse();
-                if res.is_err() {
-                    return Err(ParseNumberError);
-                }
-                Ok($TT(res.unwrap()))
-            }
-        }
-
-        impl From<$BT> for $TT {
-            fn from(v: $BT) -> Self {
-                $TT(v)
-            }
-        }
-
-        impl From<&str> for $TT {
-            fn from(s: &str) -> Self {
-                let res = s.parse().unwrap();
-                $TT(res)
-            }
-        }
-    };
-}
-
-INT_TYPE!(U16: u16);
-INT_TYPE!(U32: u32);
-INT_TYPE!(U8: u8);
-
 #[derive(PartialEq, Clone, Eq)]
 pub enum Value<T> {
     Auto,
