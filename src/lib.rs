@@ -25,14 +25,14 @@ use rand::Rng;
 use linkme::distributed_slice;
 
 #[derive(PartialEq, Clone, Eq, Debug)]
-pub struct LayerDesc {
+pub struct IanaLayerDesc {
     pub Name: &'static str,
-    pub Discriminant: u16,
+    pub Proto: u8,
     pub MakeLayer: fn() -> Box<dyn Layer>,
 }
 
 #[distributed_slice]
-pub static LAYERS: [LayerDesc];
+pub static IANA_LAYERS: [IanaLayerDesc];
 
 #[derive(PartialEq, Clone, Eq, Debug)]
 pub struct EthertypeLayerDesc {
@@ -674,16 +674,12 @@ fn fill_udp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16
     0xffff
 }
 
-#[distributed_slice(LAYERS)]
-static UdpRecord: LayerDesc = LayerDesc {
+#[distributed_slice(IANA_LAYERS)]
+static UdpRecord: IanaLayerDesc = IanaLayerDesc {
     Name: "UDP",
-    Discriminant: 17,
-    MakeLayer: make_udp_layer,
+    Proto: 17,
+    MakeLayer: make_Udp_layer,
 };
-
-fn make_udp_layer() -> Box<dyn Layer> {
-    Box::new(UDP!())
-}
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Udp {
@@ -756,10 +752,10 @@ fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Valu
 }
 
 lazy_static! {
-    pub static ref LAYERS_BY_NAME: HashMap<&'static str, LayerDesc> = {
+    pub static ref LAYERS_BY_IANA_PROTO: HashMap<u8, IanaLayerDesc> = {
         let mut m = HashMap::new();
-        for ll in LAYERS {
-            m.insert(ll.Name, (*ll).clone());
+        for ll in IANA_LAYERS {
+            m.insert(ll.Proto, (*ll).clone());
         }
         m
     };
@@ -772,23 +768,19 @@ lazy_static! {
     };
 }
 
-#[distributed_slice(LAYERS)]
-static IpRecord: LayerDesc = LayerDesc {
+#[distributed_slice(IANA_LAYERS)]
+static IpRecord: IanaLayerDesc = IanaLayerDesc {
     Name: "IP",
-    Discriminant: 17,
-    MakeLayer: make_ip_layer,
+    Proto: 4,
+    MakeLayer: make_Ip_layer,
 };
 
 #[distributed_slice(ETHERTYPE_LAYERS)]
 static EthertypeIpRecord: EthertypeLayerDesc = EthertypeLayerDesc {
-    Name: "Ip",
+    Name: "IP",
     Ethertype: 0x800,
-    MakeLayer: make_ip_layer,
+    MakeLayer: make_Ip_layer,
 };
-
-fn make_ip_layer() -> Box<dyn Layer> {
-    Box::new(IP!())
-}
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct Ip {

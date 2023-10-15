@@ -415,6 +415,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
     let name = input.ident;
     let macroname = Ident::new(&capitalize(&format!("{}", &name)), Span::call_site());
+    let make_name_layer = Ident::new(&format!("make_{}_layer", &name), Span::call_site());
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
 
     let idents = netproto_struct_fields(&nproto_encoder, &input.data);
@@ -498,6 +499,10 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     #field_methods_idents
             )*
 
+        }
+
+        fn #make_name_layer() -> Box<dyn Layer> {
+            Box::new(#macroname!())
         }
 
         impl Default for #name {
