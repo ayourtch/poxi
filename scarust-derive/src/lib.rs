@@ -142,7 +142,11 @@ impl ToTokens for DecodeNetprotoStructField {
             if &decode_expr.to_token_stream().to_string() == "Skip" {
                 quote! {}
             } else {
-                quote! { #tk2 }
+                quote! {
+                    let (#varname, delta) = #decode_expr::<BinaryBigEndian>(&buf[ci..], &mut layer)?;
+                    ci += delta;
+                    layer = layer.#name(#varname);
+                }
             }
         } else {
             quote! { #tk2 }

@@ -840,6 +840,13 @@ fn encode_ver_ihl<E: Encoder>(
     E::encode_u8(ver << 4 | ihl)
 }
 
+fn decode_ver_ihl<D: Decoder>(buf: &[u8], me: &mut Ip) -> Option<(u8, usize)> {
+    let (v_ihl, delta) = u8::decode::<D>(buf)?;
+    let ihl = v_ihl & 0xf;
+    me.version = Value::Set(v_ihl >> 4);
+    Some((ihl, delta))
+}
+
 fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u8> {
     Value::Auto
 }
@@ -848,9 +855,9 @@ fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Valu
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
 #[nproto(register(IANA_LAYERS, Proto = 4))]
 pub struct Ip {
-    #[nproto(default = 4, encode = Skip)]
+    #[nproto(default = 4, encode = Skip, decode = Skip)]
     pub version: Value<u8>,
-    #[nproto(encode = encode_ver_ihl, fill = fill_ihl_auto)]
+    #[nproto(encode = encode_ver_ihl, decode = decode_ver_ihl, fill = fill_ihl_auto)]
     pub ihl: Value<u8>,
     pub tos: Value<u8>,
     pub len: Value<u16>,
