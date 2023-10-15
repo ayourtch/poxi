@@ -31,6 +31,16 @@ struct NetprotoStructField {
     default: Option<TokenStream>,
 }
 
+macro_rules! vec_newtype {
+    ($name:ident, $inner_type:ident) => {
+        $name
+            .clone()
+            .into_iter()
+            .map($inner_type)
+            .collect::<Vec<_>>()
+    };
+}
+
 struct ImplDefaultNetprotoStructField(NetprotoStructField);
 struct FieldMethodsNetprotoStructField(NetprotoStructField);
 
@@ -260,16 +270,8 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let varname = Ident::new(&format!("__{}", &name), Span::call_site());
 
     let idents = netproto_struct_fields(&nproto_encoder, &input.data);
-    let def_idents: Vec<_> = idents
-        .clone()
-        .into_iter()
-        .map(|x| ImplDefaultNetprotoStructField(x))
-        .collect();
-    let field_methods_idents: Vec<_> = idents
-        .clone()
-        .into_iter()
-        .map(|x| FieldMethodsNetprotoStructField(x))
-        .collect();
+    let def_idents = vec_newtype!(idents, ImplDefaultNetprotoStructField);
+    let field_methods_idents = vec_newtype!(idents, FieldMethodsNetprotoStructField);
 
     let ayprepare = match name.to_string().as_str() {
         "Udp" => quote! {

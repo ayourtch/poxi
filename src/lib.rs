@@ -644,7 +644,6 @@ pub struct Ip {
     pub options: Vec<IpOption>,
 }
 
-
 impl Layer for String {
     fn embox(self) -> Box<dyn Layer> {
         Box::new(self)
