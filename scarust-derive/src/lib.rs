@@ -433,11 +433,43 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         "ether" => {
             quote! {
                 fn decode(&self, buf: &[u8]) -> LayerStack {
-                    let layer = Ether!();
-                    let mut layers = vec![layer.embox()];
-                    let mut down_layers = IP!().decode(buf).layers;
-                    layers.append(&mut down_layers);
-                    LayerStack { layers }
+                    use std::collections::HashMap;
+
+                    if buf.len() >= 14 {
+                        let etype: u16 = (buf[12] as u16) * 256 + buf[13] as u16;
+                        let layer = Ether!().dst(&buf[0..6]).src(&buf[6..12]).etype(etype);
+                        let mut layers = vec![layer.embox()];
+                        if let Some(next) = (*LAYERS_BY_ETHERTYPE).get(&etype) {
+                            let decode = (next.MakeLayer)().decode(&buf[14..]);
+                            let mut down_layers = decode.layers;
+                            layers.append(&mut down_layers);
+                        } else {
+                            let decode = self.decode_as_raw(&buf[14..]);
+                            let mut down_layers = decode.layers;
+                            layers.append(&mut down_layers);
+                        }
+                        LayerStack { layers }
+
+                    } else {
+                        self.decode_as_raw(buf)
+                    }
+                }
+            }
+        }
+        "Ip" => {
+            quote! {
+                fn decode(&self, buf: &[u8]) -> LayerStack {
+                    if buf.len() >= 32 {
+                        let layer = IP!();
+                        let mut layers = vec![layer.embox()];
+                        // down-layer from IP
+                        let decode = IP!().decode(&buf[32..]);
+                        let mut down_layers = decode.layers;
+                        layers.append(&mut down_layers);
+                        LayerStack { layers }
+                    } else {
+                        self.decode_as_raw(buf)
+                    }
                 }
             }
         }
@@ -445,7 +477,6 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             quote! {}
         }
     };
-
 
     let mut tokens = quote! {
 

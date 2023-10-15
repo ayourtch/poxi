@@ -35,14 +35,14 @@ pub struct LayerDesc {
 pub static LAYERS: [LayerDesc];
 
 #[derive(PartialEq, Clone, Eq, Debug)]
-pub struct LayerEthertypeDesc {
+pub struct EthertypeLayerDesc {
     pub Name: &'static str,
     pub Ethertype: u16,
     pub MakeLayer: fn() -> Box<dyn Layer>,
 }
 
 #[distributed_slice]
-pub static ETHERTYPE_LAYERS: [LayerEthertypeDesc];
+pub static ETHERTYPE_LAYERS: [EthertypeLayerDesc];
 
 pub trait Encoder {
     fn encode_u8(v1: u8) -> Vec<u8>;
@@ -264,6 +264,15 @@ impl FromStr for MacAddr {
 
 impl From<[u8; 6]> for MacAddr {
     fn from(arg: [u8; 6]) -> Self {
+        Self::new(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5])
+    }
+}
+
+impl From<&[u8]> for MacAddr {
+    fn from(arg: &[u8]) -> Self {
+        if arg.len() < 6 {
+            panic!("the buffer len {} too short for MacAddr", arg.len());
+        }
         Self::new(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5])
     }
 }
@@ -595,12 +604,19 @@ pub trait Layer: Debug + mopa::Any + New {
         my_index: usize,
         encoded_layers: &EncodingVecVec,
     ) -> Vec<u8>;
-    fn decode(&self, buf: &[u8]) -> LayerStack {
-        let layer = raw {
-            data: buf.clone().to_vec(),
-        };
-        let layers = vec![layer.embox()];
+
+    fn decode_as_raw(&self, buf: &[u8]) -> LayerStack {
+        let mut layers = vec![];
+        if buf.len() > 0 {
+            let layer = raw {
+                data: buf.clone().to_vec(),
+            };
+            layers.push(layer.embox());
+        }
         LayerStack { layers }
+    }
+    fn decode(&self, buf: &[u8]) -> LayerStack {
+        self.decode_as_raw(buf)
     }
 }
 
@@ -747,12 +763,26 @@ lazy_static! {
         }
         m
     };
+    pub static ref LAYERS_BY_ETHERTYPE: HashMap<u16, EthertypeLayerDesc> = {
+        let mut m = HashMap::new();
+        for ll in ETHERTYPE_LAYERS {
+            m.insert(ll.Ethertype, (*ll).clone());
+        }
+        m
+    };
 }
 
 #[distributed_slice(LAYERS)]
 static IpRecord: LayerDesc = LayerDesc {
     Name: "IP",
     Discriminant: 17,
+    MakeLayer: make_ip_layer,
+};
+
+#[distributed_slice(ETHERTYPE_LAYERS)]
+static EthertypeIpRecord: EthertypeLayerDesc = EthertypeLayerDesc {
+    Name: "Ip",
+    Ethertype: 0x800,
     MakeLayer: make_ip_layer,
 };
 
@@ -805,18 +835,5 @@ impl Layer for String {
         encoded_layers: &EncodingVecVec,
     ) -> Vec<u8> {
         self.as_bytes().to_owned()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        use crate::Ip;
-        let ip = Ip {
-            ..Default::default()
-        };
-        eprintln!("{:?}", ip);
-        assert_eq!(2 + 2, 4);
     }
 }
