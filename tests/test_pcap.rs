@@ -105,7 +105,7 @@ pub fn test_pcap1() {
 }
 
 #[test]
-pub fn test_pcap2() {
+pub fn test_pcap2_plain() {
     let packets = decode_pcap("pcap2.pcap");
     for p in packets {
         println!("p: {:?}", &p);

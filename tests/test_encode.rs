@@ -63,3 +63,35 @@ fn make_tcp_checksum_tiny() {
     assert_eq!(encoded[36], 0x91);
     assert_eq!(encoded[37], 0x7c);
 }
+
+#[test]
+fn make_udp_checksum_tiny() {
+    let x = IP!(id = 1) / UDP!(sport = 53, dport = 53);
+    eprintln!("Initial: {:02x?}", &x);
+    let filled = x.fill();
+    let encoded = filled.clone().encode();
+    eprintln!("Filled: {:02x?}", &filled);
+    eprintln!("Encoded: {:02x?}", &encoded);
+    // IP checksum
+    assert_eq!(encoded[10], 0x7c);
+    assert_eq!(encoded[11], 0xce);
+    // UDP checksum
+    assert_eq!(encoded[26], 0x01);
+    assert_eq!(encoded[27], 0x72);
+}
+
+#[test]
+fn make_udp_checksum_payload() {
+    let x = IP!(id = 1) / UDP!(sport = 1234, dport = 1234) / "xxx".to_string();
+    eprintln!("Initial: {:02x?}", &x);
+    let filled = x.fill();
+    let encoded = filled.clone().encode();
+    eprintln!("Filled: {:02x?}", &filled);
+    eprintln!("Encoded: {:02x?}", &encoded);
+    // IP checksum
+    assert_eq!(encoded[10], 0x7c);
+    assert_eq!(encoded[11], 0xcb);
+    // UDP checksum
+    assert_eq!(encoded[26], 0x07);
+    assert_eq!(encoded[27], 0xb9);
+}
