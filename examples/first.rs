@@ -10,6 +10,8 @@ use std::any::TypeId;
 use std::boxed::Box;
 use std::convert::TryFrom;
 
+use scarust::protocols::all::*;
+
 /*
 macro_rules! IP {
     () => {{

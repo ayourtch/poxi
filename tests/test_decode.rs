@@ -1,5 +1,7 @@
 use scarust::*;
 
+use scarust::protocols::all::*;
+
 #[test]
 fn decode_test_1() {
     use scarust::*;

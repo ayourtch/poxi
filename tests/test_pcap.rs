@@ -3,6 +3,8 @@ use scarust::*;
 #[macro_use]
 extern crate scarust_derive;
 
+use scarust::protocols::all::*;
+
 extern crate pcap_parser;
 use std::fs::File;
 use std::path::PathBuf;

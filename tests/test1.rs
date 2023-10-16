@@ -3,6 +3,8 @@ use scarust::*;
 #[macro_use]
 extern crate scarust_derive;
 
+use scarust::protocols::all::*;
+
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct testProto {
     #[nproto(default = 4, encode = Skip)]

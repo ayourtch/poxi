@@ -1,3 +1,4 @@
+use scarust::protocols::all::*;
 use scarust::*;
 use std::convert::TryFrom;
 
