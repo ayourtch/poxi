@@ -28,6 +28,13 @@ fn it_works() {
 }
 
 #[test]
+fn make_random() {
+    let x = Ether!().set_src(Random) / IP!().set_src(Random);
+    let filled = x.fill();
+    eprintln!("Filled: {:?}", &filled);
+}
+
+#[test]
 fn custom_proto() {
     use scarust::*;
     let px = TestProto!().tos(2);

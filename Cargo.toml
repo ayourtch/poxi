@@ -14,3 +14,12 @@ itertools = "*"
 rand = "*"
 linkme = "0.3"
 lazy_static = "*"
+
+[dev-dependencies]
+criterion = "0.3"
+
+
+[[bench]]
+name = "encode_benchmark"
+harness = false
+
