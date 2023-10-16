@@ -793,6 +793,63 @@ pub struct Udp {
     pub chksum: Value<u16>,
 }
 
+fn fill_tcp_dport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16 {
+    80
+}
+
+fn encode_tcp_reserved <E: Encoder>(
+    me: &Tcp,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_layers: &EncodingVecVec,
+) -> Vec<u8> {
+    let dataofs = me.dataofs.value() & 0xf;
+    let reserved = me.reserved.value() & 0xf;
+    E::encode_u8((dataofs << 4) | reserved)
+}
+
+fn decode_tcp_reserved <D: Decoder>(buf: &[u8], me: &mut Tcp) -> Option<(u8, usize)> {
+    use std::convert::TryInto;
+
+    let (x, delta) = u8::decode::<D>(buf)?;
+    let dataofs: u8 = x >> 4;
+    let reserved: u8 = x & 0xf;
+    me.dataofs = Value::Set(dataofs);
+    Some((reserved, delta))
+}
+
+
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(IANA_LAYERS, Proto = 6))]
+pub struct Tcp {
+    #[nproto(fill = fill_udp_sport)]
+    pub sport: Value<u16>,
+    #[nproto(fill = fill_tcp_dport)]
+    pub dport: Value<u16>,
+    #[nproto(default = 0)]
+    pub seq: Value<u32>,
+    #[nproto(default = 0)]
+    pub ack: Value<u32>,
+    // u4 really, encoded with "reserved"
+    #[nproto(default = 5, encode = Skip, decode = Skip)]
+    // u4 reserved
+    pub dataofs: Value<u8>,
+    #[nproto(default = 0, encode = encode_tcp_reserved, decode = decode_tcp_reserved)]
+    pub reserved: Value<u8>,
+    #[nproto(default = 2)] // syn
+    pub flags: Value<u8>,
+
+    #[nproto(default = 8192)]
+    pub window: Value<u16>,
+    pub chksum: Value<u16>,
+    #[nproto(default = 0)]
+    pub urgptr: Value<u16>,
+    // pub options: Vec<TcpOption>,
+}
+
+pub enum TcpOption {
+}
+
 use std::num::ParseIntError;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]

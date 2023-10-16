@@ -82,3 +82,11 @@ pub fn test_pcap2() {
         println!("p: {:?}", &p);
     }
 }
+
+#[test]
+pub fn test_pcap3() {
+    let packets = decode_pcap("pcap3.pcap");
+    for p in packets {
+        println!("p: {:?}", &p);
+    }
+}
