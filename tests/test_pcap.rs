@@ -72,6 +72,30 @@ pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
         .collect()
 }
 
+pub fn decode_encode_pcap(name: &str) {
+    let packets = read_pcap(name);
+    for d in packets {
+        println!("data: {:?}", &d);
+        let pkt = Ether!().decode(&d).unwrap().0;
+        println!("pkt: {:?}", &pkt);
+        let pkt_filled = pkt.fill();
+        println!("pkt_filled: {:?}", &pkt_filled);
+        let pkt_encoded = pkt_filled.encode();
+        println!("pkt_encoded: {:?}", &pkt_encoded);
+        assert_eq!(d.len(), pkt_encoded.len());
+        for i in 0..d.len() {
+            assert_eq!((i, d[i]), (i, pkt_encoded[i]));
+        }
+    }
+}
+
+#[test]
+pub fn test_decode_encode_pcaps() {
+    decode_encode_pcap("pcap1.pcap");
+    decode_encode_pcap("pcap2.pcap");
+    decode_encode_pcap("pcap3.pcap");
+}
+
 #[test]
 pub fn test_pcap1() {
     let packets = decode_pcap("pcap1.pcap");
