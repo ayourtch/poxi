@@ -1,6 +1,4 @@
 use crate::*;
-#[macro_use]
-// extern crate scarust_derive;
 
 fn fill_dmac(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> MacAddr {
     MacAddr::from("ff:ff:ff:ff:ff:ff")

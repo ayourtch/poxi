@@ -1,10 +1,4 @@
-use scarust::Ip;
-use scarust::Layer;
-use scarust::LayerStack;
-use scarust::New;
-use scarust::Udp;
-use scarust::IP;
-use scarust::UDP;
+use scarust::*;
 use std::any::Any;
 use std::any::TypeId;
 use std::boxed::Box;
@@ -52,7 +46,7 @@ macro_rules! IP {
 */
 
 use scarust::FromStringHashmap;
-use scarust::IpOption::*;
+use scarust::protocols::all::IpOption::*;
 use std::collections::HashMap;
 
 fn main() {
