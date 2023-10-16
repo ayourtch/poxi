@@ -1018,6 +1018,54 @@ fn fill_ihl_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Valu
     Value::Auto
 }
 
+fn fill_ip_len_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u16> {
+    Value::Auto
+}
+
+fn fill_ip_chksum_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u16> {
+    Value::Auto
+}
+
+fn encode_ip_len<E: Encoder>(
+    me: &Ip,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_data: &EncodingVecVec,
+) -> Vec<u8> {
+    use std::convert::TryInto;
+    let mut data_len: usize = 0;
+
+    for i in my_index + 1..encoded_data.len() {
+        data_len += encoded_data[i].len();
+    }
+    data_len += 20; // IP HDR
+    let len: u16 = data_len.try_into().unwrap();
+
+    len.encode::<E>()
+}
+
+fn encode_ip_chksum<E: Encoder>(
+    me: &Ip,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_data: &EncodingVecVec,
+) -> Vec<u8> {
+    use std::convert::TryInto;
+    if !me.chksum.is_auto() {
+        return me.chksum.value().encode::<E>();
+    }
+
+    let encoded_ip_header = if let Some(ip) = stack.item_at(IP!(), my_index) {
+        ip.clone().chksum(0).encode(stack, my_index, encoded_data)
+    } else {
+        vec![]
+    };
+    // eprintln!("Encoded IP header: {:02x?}", &encoded_ip_header);
+    let sum = get_inet_sum(&encoded_ip_header);
+    let sum = fold_u32(sum);
+    sum.encode::<E>()
+}
+
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
 #[nproto(register(IANA_LAYERS, Proto = 4))]
@@ -1027,6 +1075,7 @@ pub struct Ip {
     #[nproto(encode = encode_ver_ihl, decode = decode_ver_ihl, fill = fill_ihl_auto)]
     pub ihl: Value<u8>,
     pub tos: Value<u8>,
+    #[nproto(encode = encode_ip_len, fill = fill_ip_len_auto)]
     pub len: Value<u16>,
     #[nproto(default = Random)]
     pub id: Value<u16>,
@@ -1037,6 +1086,7 @@ pub struct Ip {
     pub ttl: Value<u8>,
     #[nproto(next: IANA_LAYERS => Proto )]
     pub proto: Value<u8>,
+    #[nproto(encode = encode_ip_chksum, fill = fill_ip_chksum_auto)]
     pub chksum: Value<u16>,
     #[nproto(default = "127.0.0.1")]
     pub src: Value<Ipv4Address>,
