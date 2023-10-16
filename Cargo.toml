@@ -17,6 +17,7 @@ lazy_static = "*"
 
 [dev-dependencies]
 criterion = "0.3"
+pcap-parser = "*"
 
 
 [[bench]]
