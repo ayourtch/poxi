@@ -179,18 +179,11 @@ impl ToTokens for ChainDecodeNetprotoStructField {
             );
             quote! {
                 if let Some(next) = (*#registry_lookup_name).get(&#varname) {
-                    if let Some(decode) = (next.MakeLayer)().decode(&buf[ci..]) {
+                    if let Some((decode, delta)) = (next.MakeLayer)().decode(&buf[ci..]) {
                         let mut down_layers = decode.layers;
                         layers.append(&mut down_layers);
-                    } else {
-                        let decode = self.decode_as_raw(&buf[ci..]);
-                        let mut down_layers = decode.layers;
-                        layers.append(&mut down_layers);
+                        ci += delta;
                     }
-                } else {
-                    let decode = self.decode_as_raw(&buf[ci..]);
-                    let mut down_layers = decode.layers;
-                    layers.append(&mut down_layers);
                 }
             }
         } else {
@@ -689,7 +682,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         quote! {}
     } else {
         quote! {
-            fn decode(&self, buf: &[u8]) -> Option<LayerStack> {
+            fn decode(&self, buf: &[u8]) -> Option<(LayerStack, usize)> {
                 use std::collections::HashMap;
                 let mut ci: usize = 0;
                 let mut layer = #macroname!();
@@ -700,7 +693,13 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
                 #(#chained_fields_idents)*
 
-                Some(LayerStack { layers })
+                if ci < buf.len() {
+                    let decode = self.decode_as_raw(&buf[ci..]);
+                    let mut down_layers = decode.layers;
+                    layers.append(&mut down_layers);
+                    ci += buf.len() - ci;
+                }
+                Some((LayerStack { layers }, ci))
             }
         }
     };

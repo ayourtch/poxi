@@ -7,11 +7,9 @@ extern crate pcap_parser;
 use std::fs::File;
 use std::path::PathBuf;
 
-use pcap_parser::LegacyPcapReader;
 use pcap_parser::traits::PcapReaderIterator;
+use pcap_parser::LegacyPcapReader;
 use pcap_parser::*;
-
-
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct testProto {
@@ -52,7 +50,7 @@ pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
                         // save hdr.network (linktype)
                     }
                     PcapBlockOwned::Legacy(b) => {
-                        let p = Ether!().decode(&b.data).unwrap();
+                        let p = Ether!().decode(&b.data).unwrap().0;
                         out.push(p);
                     }
                     PcapBlockOwned::NG(_) => unreachable!(),
@@ -68,7 +66,6 @@ pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
     }
     out
 }
-
 
 #[test]
 pub fn test_pcap1() {

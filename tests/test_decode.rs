@@ -6,7 +6,8 @@ fn decode_test_1() {
 
     let x = Ether!()
         .decode("AAAAAABBBBBB\x08\x00\x4523456789\x111234567890123456789012a".as_bytes())
-        .unwrap();
+        .unwrap()
+        .0;
     println!("decode result: {:?}", &x);
     assert_eq!(x.indices_of(Ether!()), vec![0]);
     assert_eq!(x.indices_of(IP!()), vec![1]);
@@ -23,7 +24,8 @@ fn decode_test_1() {
 fn decode_test_raw() {
     let x = Ether!()
         .decode("AAAAAABBBBBB\x08\x0112345678901234567890123456789012a".as_bytes())
-        .unwrap();
+        .unwrap()
+        .0;
     println!("decode result: {:?}", &x);
     assert_eq!(x.indices_of(Ether!()), vec![0]);
     assert_eq!(x.indices_of(IP!()), vec![]);
@@ -43,7 +45,7 @@ fn decode_arp_canonical() {
         0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0xa0, 0x00, 0xa0, 0xb0, 0x0c, 0x01, 0x01,
         0x01, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x02, 0x02, 0x02,
     ];
-    let x = Ether!().decode(&bytes).unwrap();
+    let x = Ether!().decode(&bytes).unwrap().0;
     println!("decode result: {:?}", &x);
     let arp = &x[ARP!()];
     assert_eq!(arp.hwsrc, "00:A0:00:A0:B0:0C".into());
@@ -59,7 +61,7 @@ fn decode_arp_strange() {
         0x01, 0x08, 0x00, 0x04, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01,
         0x01, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x02, 0x02, 0x02,
     ];
-    let x = Ether!().decode(&bytes).unwrap();
+    let x = Ether!().decode(&bytes).unwrap().0;
     println!("decode result: {:?}", &x);
     let arp = &x[ARP!()];
     assert_eq!(
@@ -86,7 +88,8 @@ fn decode_test_dot1q() {
 
     let x = Ether!()
         .decode(b"AAAAAABBBBBB\x81\x00\x02\x21\x08\x00\x4523456789\x111234567890123456789012a")
-        .unwrap();
+        .unwrap()
+        .0;
     println!("decode result: {:?}", &x);
     assert_eq!(x.indices_of(Ether!()), vec![0]);
     assert_eq!(x.indices_of(Dot1Q!()), vec![1]);

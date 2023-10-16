@@ -32,7 +32,8 @@ fn main() {
     println!("IP by name: {:?}", ll);
     let x = Ether!()
         .decode("AAAAAABBBBBB\x08\x0012345678901234567890123456789012a".as_bytes())
-        .unwrap();
+        .unwrap()
+        .0;
     println!("x: {:?}", &x);
     println!("xb: {:?}", x.encode());
 }

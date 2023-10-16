@@ -721,8 +721,9 @@ pub trait Layer: Debug + mopa::Any + New {
         }
         LayerStack { layers }
     }
-    fn decode(&self, buf: &[u8]) -> Option<LayerStack> {
-        Some(self.decode_as_raw(buf))
+    fn decode(&self, buf: &[u8]) -> Option<(LayerStack, usize)> {
+        let buflen = buf.len();
+        Some((self.decode_as_raw(buf), buflen))
     }
 }
 
