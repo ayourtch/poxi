@@ -696,12 +696,16 @@ pub trait Layer: Debug + mopa::Any + New {
     }
     /* fill the unknown fields based on the entire stack contents */
     fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack);
+
+    /* default encode function encodes some dead beef */
     fn encode(
         &self,
         stack: &LayerStack,
         my_index: usize,
         encoded_layers: &EncodingVecVec,
-    ) -> Vec<u8>;
+    ) -> Vec<u8> {
+        vec![0xde, 0xad, 0xbe, 0xef]
+    }
 
     fn decode_as_raw(&self, buf: &[u8]) -> LayerStack {
         let mut layers = vec![];

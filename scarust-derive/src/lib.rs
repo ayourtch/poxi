@@ -91,7 +91,8 @@ impl ToTokens for EncodeNetprotoStructField {
 
         let tk2 = if self.0.is_value {
             quote! {
-                let #varname: &#fixed_typ = &self.#name.value();
+                let mut #varname: &#fixed_typ = &self.#name.value();
+                // auto-filling the next protocol will go here
                 out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
             }
         } else {
@@ -525,6 +526,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let mut nproto_encoder = default_encoder;
     let mut nproto_decoder = default_decoder;
     let mut nproto_decode_suppress = false;
+    let mut nproto_encode_suppress = false;
 
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
@@ -538,6 +540,10 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             attr.parse_nested_meta(|meta| {
                 if meta.path.is_ident("decode_suppress") {
                     nproto_decode_suppress = true;
+                    return Ok(());
+                }
+                if meta.path.is_ident("encode_suppress") {
+                    nproto_encode_suppress = true;
                     return Ok(());
                 }
                 // #[nproto(register(PLACE, Key = _expr_))
@@ -660,6 +666,17 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
         }
     };
+    let encode_function = if nproto_encode_suppress {
+        quote! {}
+    } else {
+        quote! {
+            fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
+                let mut out: Vec<u8> = vec![];
+                #(#encode_fields_idents)*
+                out
+            }
+        }
+    };
 
     let mut tokens = quote! {
 
@@ -714,11 +731,9 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 #(#fill_fields_idents)*
                 out_stack.layers.push(Box::new(out))
             }
-            fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
-                let mut out: Vec<u8> = vec![];
-                #(#encode_fields_idents)*
-                out
-            }
+
+            #encode_function
+
             #decode_function
         }
 

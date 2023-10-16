@@ -11,4 +11,3 @@ fn encode_benchmark(c: &mut Criterion) {
 
 criterion_group!(benches, encode_benchmark);
 criterion_main!(benches);
-
