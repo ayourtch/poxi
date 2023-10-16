@@ -1,3 +1,5 @@
+use scarust::*;
+
 #[test]
 fn decode_test_1() {
     use scarust::*;
@@ -19,8 +21,6 @@ fn decode_test_1() {
 
 #[test]
 fn decode_test_raw() {
-    use scarust::*;
-
     let x = Ether!()
         .decode("AAAAAABBBBBB\x08\x0112345678901234567890123456789012a".as_bytes())
         .unwrap();
@@ -34,6 +34,50 @@ fn decode_test_raw() {
     assert_eq!(eth.etype, Value::Set(0x801));
 
     eprintln!("{:?}", &x);
+}
+
+#[test]
+fn decode_arp_canonical() {
+    let bytes: Vec<u8> = vec![
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x08, 0x06, 0x00,
+        0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0xa0, 0x00, 0xa0, 0xb0, 0x0c, 0x01, 0x01,
+        0x01, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x02, 0x02, 0x02,
+    ];
+    let x = Ether!().decode(&bytes).unwrap();
+    println!("decode result: {:?}", &x);
+    let arp = &x[ARP!()];
+    assert_eq!(arp.hwsrc, "00:A0:00:A0:B0:0C".into());
+    assert_eq!(arp.psrc, "1.1.1.1".into());
+    assert_eq!(arp.hwdst, "FF:FF:FF:FF:FF:FF".into());
+    assert_eq!(arp.pdst, "2.2.2.2".into());
+}
+
+#[test]
+fn decode_arp_strange() {
+    let bytes: Vec<u8> = vec![
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x08, 0x06, 0x00,
+        0x01, 0x08, 0x00, 0x04, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01,
+        0x01, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x02, 0x02, 0x02,
+    ];
+    let x = Ether!().decode(&bytes).unwrap();
+    println!("decode result: {:?}", &x);
+    let arp = &x[ARP!()];
+    assert_eq!(
+        arp.hwsrc,
+        Value::Set(ArpHardwareAddress::Bytes(vec![0, 0, 0, 0]))
+    );
+    assert_eq!(
+        arp.psrc,
+        Value::Set(ArpProtocolAddress::Bytes(vec![0, 0, 1, 1, 1, 1]))
+    );
+    assert_eq!(
+        arp.hwdst,
+        Value::Set(ArpHardwareAddress::Bytes(vec![255, 255, 255, 255]))
+    );
+    assert_eq!(
+        arp.pdst,
+        Value::Set(ArpProtocolAddress::Bytes(vec![255, 255, 2, 2, 2, 2]))
+    );
 }
 
 #[test]

@@ -18,6 +18,22 @@ pub struct testProto {
 }
 
 #[test]
+fn encode_arp() {
+    let x = Ether!(src = "02:02:02:02:02:02")
+        / ARP!(
+            psrc = "1.1.1.1",
+            pdst = "2.2.2.2",
+            hwdst = "ff:ff:ff:ff:ff:ff"
+        );
+    eprintln!("Initial: {:02x?}", &x);
+    let filled = x.fill();
+    assert_eq!(filled[Ether!()].etype, Value::Set(0x0806));
+    let encoded = filled.clone().encode();
+    eprintln!("Filled: {:02x?}", &filled);
+    eprintln!("Encoded: {:02x?}", &encoded);
+}
+
+#[test]
 fn make_random_encode() {
     let x = Ether!(src = "02:02:02:02:02:02")
         / IP!(src = "10.10.10.10", dst = "11.11.11.11", id = 42, tos = 33)
