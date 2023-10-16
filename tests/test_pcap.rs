@@ -33,13 +33,12 @@ fn get_pcap_path(name: &str) -> PathBuf {
     path.push(name);
     path
 }
-
-pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
+pub fn read_pcap(pcapname: &str) -> Vec<Vec<u8>> {
+    let mut out: Vec<Vec<u8>> = vec![];
     let path = get_pcap_path(pcapname);
     let file = File::open(path).expect("File open failed");
     let mut reader = LegacyPcapReader::new(65536, file).expect("LegacyPcapReader");
     let mut num_blocks = 0;
-    let mut out: Vec<LayerStack> = vec![];
     loop {
         match reader.next() {
             Ok((offset, block)) => {
@@ -50,8 +49,7 @@ pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
                         // save hdr.network (linktype)
                     }
                     PcapBlockOwned::Legacy(b) => {
-                        let p = Ether!().decode(&b.data).unwrap().0;
-                        out.push(p);
+                        out.push(b.data.to_vec());
                     }
                     PcapBlockOwned::NG(_) => unreachable!(),
                 }
@@ -65,6 +63,13 @@ pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
         }
     }
     out
+}
+
+pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
+    let d = read_pcap(pcapname);
+    d.into_iter()
+        .map(|x| Ether!().decode(&x).unwrap().0)
+        .collect()
 }
 
 #[test]
@@ -85,8 +90,24 @@ pub fn test_pcap2() {
 
 #[test]
 pub fn test_pcap3() {
-    let packets = decode_pcap("pcap3.pcap");
-    for p in packets {
+    let packets = read_pcap("pcap3.pcap");
+    for d in packets {
+        println!("p: {:?}", &d);
+        let p = Ether!().decode(&d).unwrap().0;
         println!("p: {:?}", &p);
+        let mut pn = p.clone();
+        if let Some(t) = pn.get_layer_mut(TCP!()) {
+            // t.modify_chksum(Value::Auto);
+        }
+        println!("pn_start: {:?}", &pn);
+        let pn_filled = pn.fill();
+        println!("pn_filled: {:?}", &pn_filled);
+        let pn_encoded = pn_filled.encode();
+        println!("pn_encoded: {:?}", &pn_encoded);
+
+        assert_eq!(d.len(), pn_encoded.len());
+        for i in 0..d.len() {
+            assert_eq!((i, d[i]), (i, pn_encoded[i]));
+        }
     }
 }

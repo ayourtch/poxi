@@ -573,6 +573,23 @@ impl LayerStack {
         self.layers[idx].downcast_ref()
     }
 
+    pub fn get_layer<T: Layer>(&mut self, item: T) -> Option<&T> {
+        for ll in &self.layers {
+            if ll.type_id_is(TypeId::of::<T>()) {
+                return Some(ll.downcast_ref().unwrap());
+            }
+        }
+        return None;
+    }
+    pub fn get_layer_mut<T: Layer>(&mut self, item: T) -> Option<&mut T> {
+        for ll in &mut self.layers {
+            if ll.type_id_is(TypeId::of::<T>()) {
+                return Some(ll.downcast_mut().unwrap());
+            }
+        }
+        return None;
+    }
+
     pub fn items_of<T: Layer>(&self, item: T) -> Vec<&T> {
         let mut out = vec![];
         for ll in &self.layers {
@@ -797,7 +814,7 @@ fn fill_tcp_dport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16
     80
 }
 
-fn encode_tcp_reserved <E: Encoder>(
+fn encode_tcp_reserved<E: Encoder>(
     me: &Tcp,
     stack: &LayerStack,
     my_index: usize,
@@ -808,7 +825,7 @@ fn encode_tcp_reserved <E: Encoder>(
     E::encode_u8((dataofs << 4) | reserved)
 }
 
-fn decode_tcp_reserved <D: Decoder>(buf: &[u8], me: &mut Tcp) -> Option<(u8, usize)> {
+fn decode_tcp_reserved<D: Decoder>(buf: &[u8], me: &mut Tcp) -> Option<(u8, usize)> {
     use std::convert::TryInto;
 
     let (x, delta) = u8::decode::<D>(buf)?;
@@ -817,7 +834,6 @@ fn decode_tcp_reserved <D: Decoder>(buf: &[u8], me: &mut Tcp) -> Option<(u8, usi
     me.dataofs = Value::Set(dataofs);
     Some((reserved, delta))
 }
-
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(register(IANA_LAYERS, Proto = 6))]
@@ -847,8 +863,7 @@ pub struct Tcp {
     // pub options: Vec<TcpOption>,
 }
 
-pub enum TcpOption {
-}
+pub enum TcpOption {}
 
 use std::num::ParseIntError;
 

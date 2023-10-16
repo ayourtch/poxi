@@ -399,6 +399,7 @@ impl ToTokens for FieldMethodsNetprotoStructField {
 
         let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
+        let modify_X = Ident::new(&format!("modify_{}", &name), Span::call_site());
 
         let def_val = if let Some(def_tok) = self.0.default.clone() {
             if self.0.add_conversion {
@@ -436,6 +437,10 @@ impl ToTokens for FieldMethodsNetprotoStructField {
             pub fn #set_X(mut self, #name: #typ) -> Self {
                 self.#name = #name;
                 self
+            }
+
+            pub fn #modify_X(&mut self, #name: #typ) {
+                self.#name = #name;
             }
         };
 
