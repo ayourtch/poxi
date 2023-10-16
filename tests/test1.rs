@@ -28,6 +28,15 @@ fn it_works() {
 }
 
 #[test]
+fn test_inet_csum1() {
+    let dat = b"\x00\x01\xf2\x03\xf4\xf5\xf6\xf7";
+    let sum = get_inet_sum(dat);
+    assert_eq!(sum, 0x2ddf0);
+    let folded_sum = fold_u32(sum);
+    assert_eq!(folded_sum, 8717);
+}
+
+#[test]
 fn make_random() {
     let x = Ether!().set_src(Random) / IP!().set_src(Random);
     let filled = x.fill();

@@ -47,3 +47,15 @@ fn make_random_encode() {
     assert_eq!(encoded[12], 0x08);
     assert_eq!(encoded[13], 0x00);
 }
+
+#[test]
+fn make_tcp_checksum_tiny() {
+    let x = IP!() / TCP!(sport = 20, dport = 80);
+    eprintln!("Initial: {:02x?}", &x);
+    let filled = x.fill();
+    let encoded = filled.clone().encode();
+    eprintln!("Filled: {:02x?}", &filled);
+    eprintln!("Encoded: {:02x?}", &encoded);
+    assert_eq!(encoded[36], 0x91);
+    assert_eq!(encoded[37], 0x7c);
+}

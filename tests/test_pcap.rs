@@ -113,7 +113,7 @@ pub fn test_pcap2() {
 }
 
 #[test]
-pub fn test_pcap3() {
+pub fn test_pcap3_nomod() {
     let packets = read_pcap("pcap3.pcap");
     for d in packets {
         println!("p: {:?}", &d);
@@ -121,7 +121,31 @@ pub fn test_pcap3() {
         println!("p: {:?}", &p);
         let mut pn = p.clone();
         if let Some(t) = pn.get_layer_mut(TCP!()) {
-            // t.modify_chksum(Value::Auto);
+            //    t.modify_chksum(Value::Auto);
+        }
+        println!("pn_start: {:?}", &pn);
+        let pn_filled = pn.fill();
+        println!("pn_filled: {:?}", &pn_filled);
+        let pn_encoded = pn_filled.encode();
+        println!("pn_encoded: {:?}", &pn_encoded);
+
+        assert_eq!(d.len(), pn_encoded.len());
+        for i in 0..d.len() {
+            assert_eq!((i, d[i]), (i, pn_encoded[i]));
+        }
+    }
+}
+
+#[test]
+pub fn test_pcap3_csum() {
+    let packets = read_pcap("pcap3.pcap");
+    for d in packets {
+        println!("p: {:02x?}", &d);
+        let p = Ether!().decode(&d).unwrap().0;
+        println!("p: {:02x?}", &p);
+        let mut pn = p.clone();
+        if let Some(t) = pn.get_layer_mut(TCP!()) {
+            t.modify_chksum(Value::Auto);
         }
         println!("pn_start: {:?}", &pn);
         let pn_filled = pn.fill();
