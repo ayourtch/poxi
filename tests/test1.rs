@@ -35,6 +35,40 @@ fn make_random() {
 }
 
 #[test]
+fn show_type_id() {
+    let x = Ether!() / IP!() / UDP!();
+    let eth = &x[Ether!()];
+    let ip = &x[IP!()];
+    let udp = &x[UDP!()];
+
+    let eth_type = TypeId::of::<ether>();
+    let ip_type = TypeId::of::<Ip>();
+    let udp_type = TypeId::of::<Udp>();
+
+    eprintln!("eth type id: {:?}", eth.get_layer_type_id());
+    eprintln!(
+        "eth type id by index: {:?}",
+        &x.layers[0].get_layer_type_id()
+    );
+    eprintln!("ip type id: {:?}", ip.get_layer_type_id());
+    eprintln!(
+        "ip type id by index: {:?}",
+        &x.layers[1].get_layer_type_id()
+    );
+    eprintln!("udp type id: {:?}", udp.get_layer_type_id());
+    eprintln!(
+        "udp type id by index: {:?}",
+        &x.layers[2].get_layer_type_id()
+    );
+    assert_eq!(eth.get_layer_type_id(), eth_type);
+    assert_eq!(x.layers[0].get_layer_type_id(), eth_type);
+    assert_eq!(ip.get_layer_type_id(), ip_type);
+    assert_eq!(x.layers[1].get_layer_type_id(), ip_type);
+    assert_eq!(udp.get_layer_type_id(), udp_type);
+    assert_eq!(x.layers[2].get_layer_type_id(), udp_type);
+}
+
+#[test]
 fn custom_proto() {
     use scarust::*;
     let px = TestProto!().tos(2);

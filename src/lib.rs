@@ -264,7 +264,7 @@ where
 }
 
 impl<T: std::cmp::PartialEq> Value<T> {
-    fn is_auto(&self) -> bool {
+    pub fn is_auto(&self) -> bool {
         self == &Self::Auto
     }
 }
@@ -693,6 +693,9 @@ pub trait Layer: Debug + mopa::Any + New {
     }
     fn type_id_is(&self, x: TypeId) -> bool {
         self.type_id() == x
+    }
+    fn get_layer_type_id(&self) -> TypeId {
+        self.type_id()
     }
     /* fill the unknown fields based on the entire stack contents */
     fn fill(&self, stack: &LayerStack, my_index: usize, out_stack: &mut LayerStack);

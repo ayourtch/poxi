@@ -89,10 +89,10 @@ impl ToTokens for EncodeNetprotoStructField {
         let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
 
+
         let tk2 = if self.0.is_value {
             quote! {
                 let mut #varname: &#fixed_typ = &self.#name.value();
-                // auto-filling the next protocol will go here
                 out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
             }
         } else {
@@ -238,6 +238,29 @@ impl ToTokens for FillNetprotoStructField {
         let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
 
+        let val_varname = Ident::new(&format!("__val_{}", &name), Span::call_site());
+        // code to attempt to retrieve the next protocol id and set it into variable
+        let try_set_by_next_layer  = if let Some((next_tbl, next_key)) = &self.0.next {
+            let typeid_registry_lookup_name = Ident::new(
+                &format!("{}_BY_TYPEID", &next_tbl),
+                Span::call_site(),
+            );
+            let typeid_varname = Ident::new(
+                &format!("{}_typeid", &varname),
+                Span::call_site(),
+            );
+            quote! {
+                if my_index + 1 < stack.layers.len() {
+                    let #typeid_varname = stack.layers[my_index + 1].get_layer_type_id();
+                    if let Some(next) = (*#typeid_registry_lookup_name).get(&#typeid_varname) {
+                        #val_varname = Value::Set(next.#next_key.clone());
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         let fill_func = if let Some(fill_tok) = self.0.fill.clone() {
             let fill_expr = {
                 match fill_tok {
@@ -290,7 +313,10 @@ impl ToTokens for FillNetprotoStructField {
                 quote! {
                     match &out.#name {
                         Value::Auto => {
-                            let #varname: #fixed_typ = Default::default();
+                            // try to set the auto field by the next level if possible
+                            let mut #val_varname = Value::Auto;
+                            #try_set_by_next_layer
+                            let #varname: #fixed_typ = #val_varname.value();
                             out = out.#name(#varname);
                         },
                         Value::Func(x) => {
@@ -484,6 +510,10 @@ impl ToTokens for LayerRegistry {
             &format!("{}_BY_{}", &self.place, &self.key),
             Span::call_site(),
         );
+        let layers_by_TYPEID = Ident::new(
+            &format!("{}_BY_TYPEID", &self.place),
+            Span::call_site(),
+        );
         let place = self.place.clone();
         let key = self.key.clone();
         let value = self.value.clone();
@@ -502,6 +532,14 @@ impl ToTokens for LayerRegistry {
                     let mut m = HashMap::new();
                     for ll in #place {
                         m.insert(ll.#key, (*ll).clone());
+                    }
+                    m
+                };
+                pub static ref #layers_by_TYPEID: HashMap<TypeId, #desc_name> = {
+                    let mut m = HashMap::new();
+                    for ll in #place {
+                        let ti = (ll.MakeLayer)().get_layer_type_id();
+                        m.insert(ti, (*ll).clone());
                     }
                     m
                 };
