@@ -134,7 +134,7 @@ impl ToTokens for DecodeNetprotoStructField {
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
 
         let tk2 = quote! {
-            let (#varname, delta) = #fixed_typ::decode::<BinaryBigEndian>(&buf[ci..])?;
+            let (#varname, delta) = #fixed_typ::decode::<DDD>(&buf[ci..])?;
             ci += delta;
             layer = layer.#name(#varname);
         };
@@ -143,7 +143,7 @@ impl ToTokens for DecodeNetprotoStructField {
                 quote! {}
             } else {
                 quote! {
-                    let (#varname, delta) = #decode_expr::<BinaryBigEndian>(&buf[ci..], &mut layer)?;
+                    let (#varname, delta) = #decode_expr::<DDD>(&buf[ci..], &mut layer)?;
                     ci += delta;
                     layer = layer.#name(#varname);
                 }
@@ -706,6 +706,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     } else {
         quote! {
             fn decode(&self, buf: &[u8]) -> Option<(LayerStack, usize)> {
+                type DDD = BinaryBigEndian;
                 use std::collections::HashMap;
                 let mut ci: usize = 0;
                 let mut layer = #macroname!();
@@ -748,7 +749,24 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                 out
             }
         }
+
         impl #name {
+            fn decode_with_decoder<DDD: Decoder>(&self, buf: &[u8]) -> Option<(LayerStack, usize)> {
+                use std::collections::HashMap;
+                let mut ci: usize = 0;
+                let mut layer = #macroname!();
+
+                #(#decode_fields_idents)*
+
+                let mut layers = vec![layer.embox()];
+
+                #(#chained_fields_idents)*
+
+                #greedy_decode_code
+
+                Some((LayerStack { layers }, ci))
+            }
+
             pub fn of(stack: &LayerStack) -> Self {
                 let res = &stack[TypeId::of::<Self>()];
                 res.downcast_ref::<Self>().unwrap().clone()

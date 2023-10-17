@@ -3,6 +3,7 @@ use crate::*;
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(decode_suppress)]
 pub struct raw {
+    #[nproto(decode = Skip)]
     pub data: Vec<u8>,
 }
 
