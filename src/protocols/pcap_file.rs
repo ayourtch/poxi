@@ -12,13 +12,7 @@ fn encode_data<E: Encoder>(
     encoded_layers: &EncodingVecVec,
 ) -> Vec<u8> {
     let mut out: Vec<u8> = vec![];
-    /*
-    for p in &me.packets {
-        let po = p.encode(stack, my_index, encoded_layers);
-        out.extend_from_slice(&po);
-    }
-    */
-    out
+    me.d.encode_with_encoder::<BinaryLittleEndian>(stack, my_index, encoded_layers)
 }
 
 fn decode_data<D: Decoder>(buf: &[u8], me: &mut pcapFile) -> Option<(pcapFileData, usize)> {
@@ -43,7 +37,7 @@ fn encode_packets<E: Encoder>(
 ) -> Vec<u8> {
     let mut out: Vec<u8> = vec![];
     for p in &me.packets {
-        let po = p.encode(stack, my_index, encoded_layers);
+        let po = p.encode_with_encoder::<E>(stack, my_index, encoded_layers);
         out.extend_from_slice(&po);
     }
     out
@@ -56,7 +50,7 @@ fn decode_packets<D: Decoder>(
     let mut vp: Vec<pcapPacket> = vec![];
     let mut ci = 0;
     while ci < buf.len() {
-        if let Some((stk, delta)) = PcapPacket!().decode_with_decoder::<D>(buf) {
+        if let Some((stk, delta)) = PcapPacket!().decode_with_decoder::<D>(&buf[ci..]) {
             let mut pkts = stk
                 .layers_of(PcapPacket!())
                 .into_iter()
@@ -91,11 +85,7 @@ pub struct pcapFileData {
 }
 
 fn decode_packet_data<D: Decoder>(buf: &[u8], me: &mut pcapPacket) -> Option<(Vec<u8>, usize)> {
-    println!("Packet in progress: {:?}", &me);
     let plen = me.incl_len.value() as usize;
-    println!("Included len: {}", plen);
-    println!("Buf len: {}", buf.len());
-
     D::decode_vec(buf, plen)
 }
 
@@ -106,6 +96,6 @@ pub struct pcapPacket {
     pub ts_usec: Value<u32>,  /* timestamp microseconds */
     pub incl_len: Value<u32>, /* number of octets of packet saved in file */
     pub orig_len: Value<u32>, /* actual length of packet */
-    #[nproto(encode = Skip, decode = decode_packet_data)]
+    #[nproto(decode = decode_packet_data)]
     pub data: Vec<u8>, /* incl_len bytes worth of data */
 }

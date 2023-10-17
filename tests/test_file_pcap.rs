@@ -99,3 +99,20 @@ pub fn test_read_pcap_bytes() {
     let pcap = PcapFile!().decode(&bytes).unwrap().0;
     println!("Pcap: {:#02x?}", &pcap);
 }
+
+#[test]
+pub fn test_read_reencode_pcap_bytes() {
+    let bytes = read_pcap_bytes("pcap_3pkts.pcap");
+    let (pcap, len) = PcapFile!().decode(&bytes).unwrap();
+    println!("Pcap ({}): {:#02x?}", len, &pcap);
+    let pcap_out = pcap.encode();
+    // std::fs::write("kaka-pcap.pcap", pcap_out.clone()).unwrap();
+
+    println!("PcapOut: {:02x?}", &pcap_out);
+    println!("Bytes  : {:02x?}", &bytes);
+    assert_eq!(pcap_out.len(), bytes.len());
+
+    for i in 0..bytes.len() {
+        assert_eq!((i, pcap_out[i]), (i, bytes[i]));
+    }
+}

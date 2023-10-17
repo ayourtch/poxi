@@ -92,12 +92,12 @@ impl ToTokens for EncodeNetprotoStructField {
         let tk2 = if self.0.is_value {
             quote! {
                 let mut #varname: &#fixed_typ = &self.#name.value();
-                out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
+                out.extend_from_slice(&#varname.encode::<EEE>());
             }
         } else {
             quote! {
                 let #varname: &#fixed_typ = &self.#name;
-                out.extend_from_slice(&#varname.encode::<BinaryBigEndian>());
+                out.extend_from_slice(&#varname.encode::<EEE>());
             }
         };
 
@@ -106,7 +106,7 @@ impl ToTokens for EncodeNetprotoStructField {
                 quote! {}
             } else {
                 quote! {
-                    let #varname: Vec<u8> = #encode_expr::<BinaryBigEndian>(self, stack, my_index, encoded_data);
+                    let #varname: Vec<u8> = #encode_expr::<EEE>(self, stack, my_index, encoded_data);
                     out.extend_from_slice(&#varname);
                 }
             }
@@ -728,6 +728,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     } else {
         quote! {
             fn encode(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
+                type EEE = BinaryBigEndian;
                 let mut out: Vec<u8> = vec![];
                 #(#encode_fields_idents)*
                 out
@@ -751,6 +752,11 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         }
 
         impl #name {
+            fn encode_with_encoder<EEE: Encoder>(&self, stack: &LayerStack, my_index: usize, encoded_data: &EncodingVecVec) -> Vec<u8> {
+                let mut out: Vec<u8> = vec![];
+                #(#encode_fields_idents)*
+                out
+            }
             fn decode_with_decoder<DDD: Decoder>(&self, buf: &[u8]) -> Option<(LayerStack, usize)> {
                 use std::collections::HashMap;
                 let mut ci: usize = 0;
