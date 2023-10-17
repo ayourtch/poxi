@@ -23,9 +23,13 @@ fn decode_packets<D: Decoder>(buf: &[u8], me: &mut pcapFile) -> Option<(Vec<pcap
     let mut ci = 0;
     while ci < buf.len() {
         if let Some((stk, delta)) = PcapPacket!().decode(buf) {
-           let mut pkts = stk.layers_of(PcapPacket!()).into_iter().map(|p| p.clone()).collect::<Vec<pcapPacket>>();
-           vp.extend_from_slice(&pkts);
-           ci += delta;
+            let mut pkts = stk
+                .layers_of(PcapPacket!())
+                .into_iter()
+                .map(|p| p.clone())
+                .collect::<Vec<pcapPacket>>();
+            vp.extend_from_slice(&pkts);
+            ci += delta;
         } else {
             break;
         }
