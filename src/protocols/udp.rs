@@ -1,6 +1,5 @@
-use crate::*;
 use crate::protocols::ip::*;
-
+use crate::*;
 
 fn fill_udp_len_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u16> {
     Value::Auto
@@ -104,4 +103,3 @@ pub struct Udp {
     #[nproto(encode = encode_udp_chksum, fill = fill_udp_chksum_auto )]
     pub chksum: Value<u16>,
 }
-

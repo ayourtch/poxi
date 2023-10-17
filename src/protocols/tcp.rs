@@ -1,8 +1,8 @@
-use crate::*;
 use crate::protocols::ip::*;
+use crate::*;
 
 fn fill_tcp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16 {
-   0xffff
+    0xffff
 }
 
 fn fill_tcp_dport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16 {
@@ -124,4 +124,3 @@ pub struct Tcp {
 }
 
 pub enum TcpOption {}
-

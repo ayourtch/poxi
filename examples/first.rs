@@ -45,8 +45,8 @@ macro_rules! IP {
 
 */
 
-use scarust::FromStringHashmap;
 use scarust::protocols::all::IpOption::*;
+use scarust::FromStringHashmap;
 use std::collections::HashMap;
 
 fn main() {

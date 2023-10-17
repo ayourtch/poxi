@@ -19,8 +19,6 @@ impl Encode for IpFlags {
     }
 }
 
-
-
 impl From<u8> for IpFlags {
     fn from(v: u8) -> Self {
         IpFlags {}
@@ -129,8 +127,6 @@ fn encode_ip_chksum<E: Encoder>(
     sum.encode::<E>()
 }
 
-
-
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
 #[nproto(register(IANA_LAYERS, Proto = 4))]
@@ -160,4 +156,3 @@ pub struct Ip {
     #[nproto(decode = Skip)]
     pub options: Vec<IpOption>,
 }
-

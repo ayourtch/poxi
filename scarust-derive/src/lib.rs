@@ -89,7 +89,6 @@ impl ToTokens for EncodeNetprotoStructField {
         let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
 
-
         let tk2 = if self.0.is_value {
             quote! {
                 let mut #varname: &#fixed_typ = &self.#name.value();
@@ -233,15 +232,10 @@ impl ToTokens for FillNetprotoStructField {
 
         let val_varname = Ident::new(&format!("__val_{}", &name), Span::call_site());
         // code to attempt to retrieve the next protocol id and set it into variable
-        let try_set_by_next_layer  = if let Some((next_tbl, next_key)) = &self.0.next {
-            let typeid_registry_lookup_name = Ident::new(
-                &format!("{}_BY_TYPEID", &next_tbl),
-                Span::call_site(),
-            );
-            let typeid_varname = Ident::new(
-                &format!("{}_typeid", &varname),
-                Span::call_site(),
-            );
+        let try_set_by_next_layer = if let Some((next_tbl, next_key)) = &self.0.next {
+            let typeid_registry_lookup_name =
+                Ident::new(&format!("{}_BY_TYPEID", &next_tbl), Span::call_site());
+            let typeid_varname = Ident::new(&format!("{}_typeid", &varname), Span::call_site());
             quote! {
                 if my_index + 1 < stack.layers.len() {
                     let #typeid_varname = stack.layers[my_index + 1].get_layer_type_id();
@@ -508,10 +502,7 @@ impl ToTokens for LayerRegistry {
             &format!("{}_BY_{}", &self.place, &self.key),
             Span::call_site(),
         );
-        let layers_by_TYPEID = Ident::new(
-            &format!("{}_BY_TYPEID", &self.place),
-            Span::call_site(),
-        );
+        let layers_by_TYPEID = Ident::new(&format!("{}_BY_TYPEID", &self.place), Span::call_site());
         let place = self.place.clone();
         let key = self.key.clone();
         let value = self.value.clone();

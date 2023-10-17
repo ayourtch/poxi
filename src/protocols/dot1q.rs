@@ -40,4 +40,3 @@ pub struct dot1Q {
     #[nproto(next: ETHERTYPE_LAYERS => Ethertype)]
     pub etype: Value<u16>,
 }
-
