@@ -563,6 +563,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     let mut nproto_decoder = default_decoder;
     let mut nproto_decode_suppress = false;
     let mut nproto_encode_suppress = false;
+    let mut nproto_greedy_decode = true;
 
     // let source = input.to_string();
     // Parse the string representation into a syntax tree
@@ -643,6 +644,19 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                         return Err(meta.error("bad encoder type"));
                     }
                 }
+                // #[nproto(greedy_decode)]
+                if meta.path.is_ident("non_greedy_decode") {
+                    if meta.input.peek(token::Paren) {
+                        let content;
+                        parenthesized!(content in meta.input);
+                        let lit: LitInt = content.parse()?;
+                        let n: usize = lit.base10_parse()?;
+                        nproto_greedy_decode = false;
+                    } else {
+                        nproto_greedy_decode = false;
+                    }
+                    return Ok(());
+                }
 
                 // #[nproto(packed)] or #[nproto(packed(N))], omitted N means 1
                 if meta.path.is_ident("packed") {
@@ -683,6 +697,19 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     $ip = $ip.$ident($e);
     };
 
+    let greedy_decode_code = if nproto_greedy_decode {
+        quote! {
+                if ci < buf.len() {
+                    let decode = self.decode_as_raw(&buf[ci..]);
+                    let mut down_layers = decode.layers;
+                    layers.append(&mut down_layers);
+                    ci += buf.len() - ci;
+                }
+        }
+    } else {
+        quote! {}
+    };
+
     let decode_function = if nproto_decode_suppress {
         quote! {}
     } else {
@@ -698,12 +725,8 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
                 #(#chained_fields_idents)*
 
-                if ci < buf.len() {
-                    let decode = self.decode_as_raw(&buf[ci..]);
-                    let mut down_layers = decode.layers;
-                    layers.append(&mut down_layers);
-                    ci += buf.len() - ci;
-                }
+                #greedy_decode_code
+
                 Some((LayerStack { layers }, ci))
             }
         }

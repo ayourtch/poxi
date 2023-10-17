@@ -157,6 +157,12 @@ impl Decode for u32 {
     }
 }
 
+impl Decode for i32 {
+    fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
+        D::decode_u32(buf).map(|(n, s)| (n as i32, s))
+    }
+}
+
 impl Decode for u64 {
     fn decode<D: Decoder>(buf: &[u8]) -> Option<(Self, usize)> {
         D::decode_u64(buf)
@@ -198,6 +204,12 @@ impl Encode for u16 {
 impl Encode for u32 {
     fn encode<E: Encoder>(&self) -> Vec<u8> {
         E::encode_u32(*self)
+    }
+}
+
+impl Encode for i32 {
+    fn encode<E: Encoder>(&self) -> Vec<u8> {
+        E::encode_u32(*self as u32)
     }
 }
 
@@ -578,7 +590,7 @@ impl LayerStack {
         return None;
     }
 
-    pub fn items_of<T: Layer>(&self, item: T) -> Vec<&T> {
+    pub fn layers_of<T: Layer>(&self, item: T) -> Vec<&T> {
         let mut out = vec![];
         for ll in &self.layers {
             if ll.type_id_is(TypeId::of::<T>()) {
@@ -586,6 +598,9 @@ impl LayerStack {
             }
         }
         out
+    }
+    pub fn items_of<T: Layer>(&self, typ: T) -> Vec<&T> {
+        self.layers_of(typ)
     }
 
     pub fn encode(self) -> Vec<u8> {
