@@ -8,6 +8,7 @@ pub mod tcp;
 pub mod udp;
 
 pub mod all {
+    pub use crate::encdec::binary_big_endian::BinaryBigEndian;
     pub use crate::protocols::arp::*;
     pub use crate::protocols::dot1q::*;
     pub use crate::protocols::ether::*;

@@ -92,7 +92,6 @@ pub fn decode_pcap(pcapname: &str) -> Vec<LayerStack> {
         .collect()
 }
 
-
 #[test]
 pub fn test_read_pcap_bytes() {
     let bytes = read_pcap_bytes("pcap_3pkts.pcap");
@@ -100,4 +99,3 @@ pub fn test_read_pcap_bytes() {
     let pcap = PcapFile!().decode(&bytes).unwrap().0;
     println!("Pcap: {:#02x?}", &pcap);
 }
-
