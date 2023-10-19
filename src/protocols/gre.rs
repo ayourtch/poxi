@@ -1,47 +1,4 @@
 use crate::*;
-
-fn encode_first_u16_fields<E: Encoder>(
-    me: &Gre,
-    stack: &LayerStack,
-    my_index: usize,
-    encoded_layers: &EncodingVecVec,
-) -> Vec<u8> {
-    let mut out: Vec<u8> = vec![];
-    let mut the_u16: u16 = u16::from(me.chksum_present.value()) << 15
-        | u16::from(me.routing_present.value()) << 14
-        | u16::from(me.key_present.value()) << 13
-        | u16::from(me.seqnum_present.value()) << 12
-        | u16::from(me.strict_source_route.value()) << 11
-        | u16::from(me.recursion_control.value() & 7) << 8
-        | u16::from(me.acknum_present.value()) << 7
-        | u16::from(me.flags.value() & 0x0f) << 3
-        | u16::from(me.version.value() & 7);
-
-    E::encode_u16(the_u16)
-}
-
-/*
- * decode the first u16 and set the flags.
- * It returns "u8" because it is also decoding the "version" field which is u8.
- */
-fn decode_first_u16_fields<D: Decoder>(buf: &[u8], me: &mut Gre) -> Option<(u8, usize)> {
-    use crate::Value::Set;
-    let mut ci = 0;
-    let (the_u16, _) = D::decode_u16(buf)?;
-
-    me.chksum_present = Set((1 & (the_u16 >> 15)) == 1);
-    me.routing_present = Set((1 & (the_u16 >> 14)) == 1);
-    me.key_present = Set((1 & (the_u16 >> 13)) == 1);
-    me.seqnum_present = Set((1 & (the_u16 >> 12)) == 1);
-    me.strict_source_route = Set((1 & (the_u16 >> 11)) == 1);
-    me.recursion_control = Set((7 & (the_u16 >> 8)) as u8);
-    me.acknum_present = Set((1 & (the_u16 >> 7)) == 1);
-    me.flags = Set((0x0f & (the_u16 >> 3)) as u8);
-
-    let version = (7 & (the_u16)) as u8;
-    Some((version, 2))
-}
-
 /*
  * GRE packets have an interesting story - https://en.wikipedia.org/wiki/Generic_Routing_Encapsulation
  *
@@ -102,4 +59,46 @@ pub struct Gre {
     // TBD
     #[nproto(encode = Skip, decode = Skip)]
     pub routing: Vec<u8>,
+}
+
+fn encode_first_u16_fields<E: Encoder>(
+    me: &Gre,
+    stack: &LayerStack,
+    my_index: usize,
+    encoded_layers: &EncodingVecVec,
+) -> Vec<u8> {
+    let mut out: Vec<u8> = vec![];
+    let mut the_u16: u16 = u16::from(me.chksum_present.value()) << 15
+        | u16::from(me.routing_present.value()) << 14
+        | u16::from(me.key_present.value()) << 13
+        | u16::from(me.seqnum_present.value()) << 12
+        | u16::from(me.strict_source_route.value()) << 11
+        | u16::from(me.recursion_control.value() & 7) << 8
+        | u16::from(me.acknum_present.value()) << 7
+        | u16::from(me.flags.value() & 0x0f) << 3
+        | u16::from(me.version.value() & 7);
+
+    E::encode_u16(the_u16)
+}
+
+/*
+ * decode the first u16 and set the flags.
+ * It returns "u8" because it is also decoding the "version" field which is u8.
+ */
+fn decode_first_u16_fields<D: Decoder>(buf: &[u8], me: &mut Gre) -> Option<(u8, usize)> {
+    use crate::Value::Set;
+    let mut ci = 0;
+    let (the_u16, _) = D::decode_u16(buf)?;
+
+    me.chksum_present = Set((1 & (the_u16 >> 15)) == 1);
+    me.routing_present = Set((1 & (the_u16 >> 14)) == 1);
+    me.key_present = Set((1 & (the_u16 >> 13)) == 1);
+    me.seqnum_present = Set((1 & (the_u16 >> 12)) == 1);
+    me.strict_source_route = Set((1 & (the_u16 >> 11)) == 1);
+    me.recursion_control = Set((7 & (the_u16 >> 8)) as u8);
+    me.acknum_present = Set((1 & (the_u16 >> 7)) == 1);
+    me.flags = Set((0x0f & (the_u16 >> 3)) as u8);
+
+    let version = (7 & (the_u16)) as u8;
+    Some((version, 2))
 }
