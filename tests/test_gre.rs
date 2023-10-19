@@ -17,3 +17,13 @@ fn decode_gre_first_test() {
     assert_eq!(gre.seqnum_present, Value::Set(true));
     assert_eq!(gre.sequence_number, Value::Set(2114488375));
 }
+
+#[test]
+fn encode_erspan_version() {
+    let x1 = Ether!() / IP!() / GRE!() / Erspan!(version = ErspanType::Type2);
+    let x2 = Ether!() / IP!() / GRE!() / Erspan!(version = 1);
+
+    println!("x1 result: {:02x?}", &x1);
+    println!("x2 result: {:02x?}", &x2);
+    assert_eq!(x1[Erspan!()].version, x2[Erspan!()].version);
+}

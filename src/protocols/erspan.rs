@@ -5,7 +5,7 @@ use crate::*;
 pub struct erspan {
     // encoded/decoded by the next field encoders
     #[nproto(encode = Skip, decode = Skip)]
-    pub version: Value<u8>,
+    pub version: Value<ErspanType>,
     #[nproto(encode = encode_version_and_vlan, decode = decode_version_and_vlan)]
     pub vlan: Value<u16>,
 
@@ -26,6 +26,45 @@ pub struct erspan {
     // reserved value
     #[nproto(encode = encode_u32_reserved1, decode = decode_u32_reserved1)]
     pub reserved1: Value<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[repr(u8)]
+pub enum ErspanType {
+    #[default]
+    Type1 = 0,
+    Type2 = 1,
+    Type3 = 2,
+    Unknown(u8),
+}
+
+impl From<u8> for ErspanType {
+    fn from(u: u8) -> Self {
+        match u {
+            0 => ErspanType::Type1,
+            1 => ErspanType::Type2,
+            2 => ErspanType::Type3,
+            x => ErspanType::Unknown(x),
+        }
+    }
+}
+
+impl Into<u8> for ErspanType {
+    fn into(self) -> u8 {
+        match self {
+            ErspanType::Type1 => 0,
+            ErspanType::Type2 => 1,
+            ErspanType::Type3 => 2,
+            ErspanType::Unknown(x) => x,
+        }
+    }
+}
+
+impl Distribution<ErspanType> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ErspanType {
+        let r: u8 = rng.gen();
+        r.into()
+    }
 }
 
 fn encode_second_u16_fields<E: Encoder>(
@@ -60,7 +99,7 @@ fn decode_second_u16_fields<D: Decoder>(buf: &[u8], me: &mut erspan) -> Option<(
 
 fn decode_version_and_vlan<D: Decoder>(buf: &[u8], me: &mut erspan) -> Option<(u16, usize)> {
     let (the_u16, _) = D::decode_u16(buf)?;
-    me.version = Value::Set((0xf & (the_u16 >> 12)) as u8);
+    me.version = Value::Set(ErspanType::from((0xf & (the_u16 >> 12)) as u8));
     let vlan = the_u16 & 0xfff;
     Some((vlan, 2))
 }
@@ -71,8 +110,8 @@ fn encode_version_and_vlan<E: Encoder>(
     my_index: usize,
     encoded_layers: &EncodingVecVec,
 ) -> Vec<u8> {
-    let mut the_u16: u16 =
-        (u16::from(me.vlan.value()) & 0xfff) | u16::from(me.version.value() & 0xf) << 12;
+    let version: u8 = me.version.value().into();
+    let mut the_u16: u16 = (u16::from(me.vlan.value()) & 0xfff) | u16::from(version & 0xf) << 12;
     E::encode_u16(the_u16)
 }
 
