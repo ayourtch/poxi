@@ -5,6 +5,56 @@ use crate::*;
  * This is a toy pcap encoder/decoder
  */
 
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+pub struct pcapFile {
+    #[nproto(default = 0xd4c3b2a1)]
+    pub magic_number: Value<u32>, // magic number  0xa1b2c3d4: no swap required, 0xd4c3b2a1: swapped
+    #[nproto(encode = encode_data, decode = decode_data)]
+    pub d: pcapFileData,
+}
+
+/* a few convenience methods */
+
+impl pcapFile {
+    pub fn push(&mut self, pkt: pcapPacket) {
+        self.d.packets.push(pkt);
+    }
+
+    pub fn write(&self, fname: &str) -> Result<(), std::io::Error> {
+        std::fs::write(fname, self.clone().to_stack().encode())
+    }
+}
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+pub struct pcapFileData {
+    #[nproto(default = 2)]
+    pub version_major: Value<u16>, // major version number
+    #[nproto(default = 4)]
+    pub version_minor: Value<u16>, // minor version number
+    #[nproto(default = 0)]
+    pub thiszone: Value<i32>, // GMT to local correction
+    #[nproto(default = 0)]
+    pub sigfigs: Value<u32>, // accuracy of timestamps
+    #[nproto(fill = fill_snaplen)]
+    pub snaplen: Value<u32>, // max length of captured packets, in octets
+    #[nproto(default = 1)]
+    pub network: Value<u32>, // data link type
+    #[nproto(encode = encode_packets, decode = decode_packets)]
+    pub packets: Vec<pcapPacket>, // encoded packets
+}
+
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(non_greedy_decode)]
+pub struct pcapPacket {
+    pub ts_sec: Value<u32>,  /* timestamp seconds */
+    pub ts_usec: Value<u32>, /* timestamp microseconds */
+    #[nproto(fill = fill_len_auto)]
+    pub incl_len: Value<u32>, /* number of octets of packet saved in file */
+    #[nproto(fill = fill_len_auto)]
+    pub orig_len: Value<u32>, /* actual length of packet */
+    #[nproto(decode = decode_packet_data, set = set_packet_data )]
+    pub data: Vec<u8>, /* incl_len bytes worth of data */
+}
+
 fn encode_data<E: Encoder>(
     me: &pcapFile,
     stack: &LayerStack,
@@ -65,24 +115,6 @@ fn decode_packets<D: Decoder>(
     Some((vp, ci))
 }
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-pub struct pcapFile {
-    #[nproto(default = 0xd4c3b2a1)]
-    pub magic_number: Value<u32>, // magic number  0xa1b2c3d4: no swap required, 0xd4c3b2a1: swapped
-    #[nproto(encode = encode_data, decode = decode_data)]
-    pub d: pcapFileData,
-}
-
-impl pcapFile {
-    pub fn push(&mut self, pkt: pcapPacket) {
-        self.d.packets.push(pkt);
-    }
-
-    pub fn write(&self, fname: &str) -> Result<(), std::io::Error> {
-        std::fs::write(fname, self.clone().to_stack().encode())
-    }
-}
-
 fn fill_snaplen(layer: &pcapFileData, stack: &LayerStack, my_index: usize) -> Value<u32> {
     use std::convert::TryInto;
 
@@ -94,24 +126,6 @@ fn fill_snaplen(layer: &pcapFileData, stack: &LayerStack, my_index: usize) -> Va
         }
     }
     Value::Set(0)
-}
-
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-pub struct pcapFileData {
-    #[nproto(default = 2)]
-    pub version_major: Value<u16>, // major version number
-    #[nproto(default = 4)]
-    pub version_minor: Value<u16>, // minor version number
-    #[nproto(default = 0)]
-    pub thiszone: Value<i32>, // GMT to local correction
-    #[nproto(default = 0)]
-    pub sigfigs: Value<u32>, // accuracy of timestamps
-    #[nproto(fill = fill_snaplen)]
-    pub snaplen: Value<u32>, // max length of captured packets, in octets
-    #[nproto(default = 1)]
-    pub network: Value<u32>, // data link type
-    #[nproto(encode = encode_packets, decode = decode_packets)]
-    pub packets: Vec<pcapPacket>, // encoded packets
 }
 
 fn decode_packet_data<D: Decoder>(buf: &[u8], me: &mut pcapPacket) -> Option<(Vec<u8>, usize)> {
@@ -135,17 +149,4 @@ fn set_packet_data(mut me: pcapPacket, data: Vec<u8>) -> pcapPacket {
     }
     me.data = data;
     me
-}
-
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-#[nproto(non_greedy_decode)]
-pub struct pcapPacket {
-    pub ts_sec: Value<u32>,  /* timestamp seconds */
-    pub ts_usec: Value<u32>, /* timestamp microseconds */
-    #[nproto(fill = fill_len_auto)]
-    pub incl_len: Value<u32>, /* number of octets of packet saved in file */
-    #[nproto(fill = fill_len_auto)]
-    pub orig_len: Value<u32>, /* actual length of packet */
-    #[nproto(decode = decode_packet_data, set = set_packet_data )]
-    pub data: Vec<u8>, /* incl_len bytes worth of data */
 }
