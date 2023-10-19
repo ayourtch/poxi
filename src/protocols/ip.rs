@@ -1,5 +1,35 @@
 use crate::*;
 
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
+#[nproto(register(IANA_LAYERS, Proto = 4))]
+pub struct Ip {
+    #[nproto(default = 4, encode = Skip, decode = Skip)]
+    pub version: Value<u8>,
+    #[nproto(encode = encode_ver_ihl, decode = decode_ver_ihl, fill = fill_ihl_auto)]
+    pub ihl: Value<u8>,
+    pub tos: Value<u8>,
+    #[nproto(encode = encode_ip_len, fill = fill_ip_len_auto)]
+    pub len: Value<u16>,
+    #[nproto(default = Random)]
+    pub id: Value<u16>,
+    #[nproto(decode = Skip)]
+    pub flags: Value<IpFlags>,
+    pub frag: Value<u16>,
+    #[nproto(default = 64)]
+    pub ttl: Value<u8>,
+    #[nproto(next: IANA_LAYERS => Proto )]
+    pub proto: Value<u8>,
+    #[nproto(encode = encode_ip_chksum, fill = fill_ip_chksum_auto)]
+    pub chksum: Value<u16>,
+    #[nproto(default = "127.0.0.1")]
+    pub src: Value<Ipv4Address>,
+    #[nproto(default = "127.0.0.1")]
+    pub dst: Value<Ipv4Address>,
+    #[nproto(decode = Skip)]
+    pub options: Vec<IpOption>,
+}
+
 use std::num::ParseIntError;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -125,34 +155,4 @@ fn encode_ip_chksum<E: Encoder>(
     let sum = get_inet_sum(&encoded_ip_header);
     let sum = fold_u32(sum);
     sum.encode::<E>()
-}
-
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-#[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
-#[nproto(register(IANA_LAYERS, Proto = 4))]
-pub struct Ip {
-    #[nproto(default = 4, encode = Skip, decode = Skip)]
-    pub version: Value<u8>,
-    #[nproto(encode = encode_ver_ihl, decode = decode_ver_ihl, fill = fill_ihl_auto)]
-    pub ihl: Value<u8>,
-    pub tos: Value<u8>,
-    #[nproto(encode = encode_ip_len, fill = fill_ip_len_auto)]
-    pub len: Value<u16>,
-    #[nproto(default = Random)]
-    pub id: Value<u16>,
-    #[nproto(decode = Skip)]
-    pub flags: Value<IpFlags>,
-    pub frag: Value<u16>,
-    #[nproto(default = 64)]
-    pub ttl: Value<u8>,
-    #[nproto(next: IANA_LAYERS => Proto )]
-    pub proto: Value<u8>,
-    #[nproto(encode = encode_ip_chksum, fill = fill_ip_chksum_auto)]
-    pub chksum: Value<u16>,
-    #[nproto(default = "127.0.0.1")]
-    pub src: Value<Ipv4Address>,
-    #[nproto(default = "127.0.0.1")]
-    pub dst: Value<Ipv4Address>,
-    #[nproto(decode = Skip)]
-    pub options: Vec<IpOption>,
 }
