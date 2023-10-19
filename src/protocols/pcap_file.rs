@@ -69,7 +69,7 @@ fn decode_packets<D: Decoder>(
 pub struct pcapFile {
     pub magic_number: Value<u32>, // magic number  0xa1b2c3d4: no swap required, 0xd4c3b2a1: swapped
     #[nproto(encode = encode_data, decode = decode_data)]
-    d: pcapFileData,
+    pub d: pcapFileData,
 }
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]

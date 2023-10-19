@@ -487,7 +487,7 @@ impl LayerStack {
         self.layers[idx].downcast_ref()
     }
 
-    pub fn get_layer<T: Layer>(&mut self, item: T) -> Option<&T> {
+    pub fn get_layer<T: Layer>(&self, item: T) -> Option<&T> {
         for ll in &self.layers {
             if ll.type_id_is(TypeId::of::<T>()) {
                 return Some(ll.downcast_ref().unwrap());

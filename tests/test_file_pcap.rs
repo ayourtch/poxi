@@ -116,3 +116,27 @@ pub fn test_read_reencode_pcap_bytes() {
         assert_eq!((i, pcap_out[i]), (i, bytes[i]));
     }
 }
+
+#[test]
+pub fn test_write_pcap_with_gre() {
+    /* not really much of a test, was just using it to write a hex into a pcap
+     * bugs found: FIXME & write tests:
+     * Ether!() / IP!() / Raw(data = bytes) seems to result into incorrect pcap data when encoding
+     * length of the pcap packet is not set when encoding.
+     */
+    use std::convert::TryInto;
+
+    let bytes = read_pcap_bytes("pcap1.pcap");
+    let (mut pcap, len) = PcapFile!().decode(&bytes).unwrap();
+    println!("Pcap ({}): {:#02x?}", len, &pcap);
+
+    let packet = "52540072a57f6cab051f0c7408004500005b00004000fa2f57ee0a000a010a000a85100088be7e088837100100010000000054b20307eeed6cab051f0c74080045000029250e000039116cb059bb82400a000a0b2703e1f60015fab0ee1c108eee4ece4a36cd840096";
+    let pkt_encode = hex::decode(packet).unwrap();
+
+    pcap.get_layer_mut(PcapFile!()).unwrap().d.packets[0].incl_len =
+        Value::Set(pkt_encode.len() as u32);
+    pcap.get_layer_mut(PcapFile!()).unwrap().d.packets[0].data = pkt_encode;
+
+    let pcap_out = pcap.encode();
+    // std::fs::write("kaka-pcap.pcap", pcap_out.clone()).unwrap();
+}
