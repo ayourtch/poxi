@@ -126,7 +126,7 @@ pub fn test_write_pcap_from_scratch() {
         let p = Ether!() / IP!() / GRE!() / IP!() / UDP!();
         let dp = p.encode();
         let len: u32 = dp.len().try_into().unwrap();
-        let pp = PcapPacket!(data = dp, incl_len = len, orig_len = len);
+        let pp = PcapPacket!(data = dp); // , incl_len = len, orig_len = len);
         pcap.d.packets.push(pp);
     }
     let pcap = pcap.to_stack().fill();

@@ -109,13 +109,33 @@ fn decode_packet_data<D: Decoder>(buf: &[u8], me: &mut pcapPacket) -> Option<(Ve
     D::decode_vec(buf, plen)
 }
 
+fn fill_len_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u16> {
+    Value::Auto
+}
+
+fn set_packet_data(mut me: pcapPacket, data: Vec<u8>) -> pcapPacket {
+    use std::convert::TryInto;
+
+    let u32_len: u32 = data.len().try_into().unwrap();
+    if me.incl_len.is_auto() {
+        me.incl_len = Value::Set(u32_len);
+    }
+    if me.orig_len.is_auto() {
+        me.orig_len = Value::Set(u32_len);
+    }
+    me.data = data;
+    me
+}
+
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(non_greedy_decode)]
 pub struct pcapPacket {
-    pub ts_sec: Value<u32>,   /* timestamp seconds */
-    pub ts_usec: Value<u32>,  /* timestamp microseconds */
+    pub ts_sec: Value<u32>,  /* timestamp seconds */
+    pub ts_usec: Value<u32>, /* timestamp microseconds */
+    #[nproto(fill = fill_len_auto)]
     pub incl_len: Value<u32>, /* number of octets of packet saved in file */
+    #[nproto(fill = fill_len_auto)]
     pub orig_len: Value<u32>, /* actual length of packet */
-    #[nproto(decode = decode_packet_data)]
+    #[nproto(decode = decode_packet_data, set = set_packet_data )]
     pub data: Vec<u8>, /* incl_len bytes worth of data */
 }

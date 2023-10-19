@@ -35,6 +35,7 @@ struct NetprotoStructField {
     decode: Option<syn::Expr>,
     next: Option<(syn::Ident, syn::Ident)>,
     skip_encdec_unless: Option<syn::Expr>,
+    set: Option<syn::Ident>,
 }
 
 macro_rules! vec_newtype {
@@ -413,13 +414,28 @@ impl ToTokens for FieldMethodsNetprotoStructField {
             }
         };
 
-        let tk = if self.0.add_conversion {
+        let derived_assignment_func = if self.0.add_conversion {
             quote! {
                 #do_assignment_with_conversion
             }
         } else {
             quote! {
                 #do_assignment_without_conversion
+            }
+        };
+
+        let assignment_func = {
+            if let Some(set_ident) = &self.0.set {
+                quote! {
+                    pub fn #name(mut self, #name: #typ) -> Self {
+                        self = #set_ident(self, #name);
+                        self
+                    }
+                }
+            } else {
+                quote! {
+                    #derived_assignment_func
+                }
             }
         };
 
@@ -468,9 +484,10 @@ impl ToTokens for FieldMethodsNetprotoStructField {
             pub fn #modify_X(&mut self, #name: #typ) {
                 self.#name = #name;
             }
+
+            #assignment_func
         };
 
-        tokens.extend(tk);
         tokens.extend(tk2);
     }
 }
@@ -1100,6 +1117,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                         let mut nproto_next = None::<(syn::Ident, syn::Ident)>;
                         let mut nproto_decode = None::<syn::Expr>;
                         let mut nproto_skip_encdec_unless = None::<syn::Expr>;
+                        let mut nproto_set = None::<syn::Ident>;
                         let name = f.ident.clone().unwrap();
                         // eprintln!("FIELD: {:#?}", f.ty);
                         for attr in &f.attrs {
@@ -1128,6 +1146,14 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                         let eq_token: Option<Token![=]> = meta.input.parse()?;
                                         let val_expr: syn::Expr = meta.input.parse()?;
                                         nproto_auto = Some(val_expr.to_token_stream());
+                                        return Ok(());
+                                    }
+
+                                    // #[nproto(set = _ident_)]
+                                    if meta.path.is_ident("set") {
+                                        let eq_token: Option<Token![=]> = meta.input.parse()?;
+                                        let val_ident: syn::Ident = meta.input.parse()?;
+                                        nproto_set = Some(val_ident);
                                         return Ok(());
                                     }
 
@@ -1232,6 +1258,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     next: nproto_next,
                                     decode: nproto_decode,
                                     skip_encdec_unless: nproto_skip_encdec_unless,
+                                    set: nproto_set,
                                 });
                             }
                             Type::Path(typepath)
@@ -1250,6 +1277,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     next: nproto_next,
                                     decode: nproto_decode,
                                     skip_encdec_unless: nproto_skip_encdec_unless,
+                                    set: nproto_set,
                                 });
                             }
                             Type::Path(typepath)
@@ -1268,6 +1296,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     next: nproto_next,
                                     decode: nproto_decode,
                                     skip_encdec_unless: nproto_skip_encdec_unless,
+                                    set: nproto_set,
                                 });
                             }
                             Type::Path(typepath) => {
@@ -1284,6 +1313,7 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
                                     next: nproto_next,
                                     decode: nproto_decode,
                                     skip_encdec_unless: nproto_skip_encdec_unless,
+                                    set: nproto_set,
                                 });
                             }
                             _ => {
