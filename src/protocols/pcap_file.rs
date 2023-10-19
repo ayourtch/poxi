@@ -73,6 +73,16 @@ pub struct pcapFile {
     pub d: pcapFileData,
 }
 
+impl pcapFile {
+    pub fn push(&mut self, pkt: pcapPacket) {
+        self.d.packets.push(pkt);
+    }
+
+    pub fn write(&self, fname: &str) -> Result<(), std::io::Error> {
+        std::fs::write(fname, self.clone().to_stack().encode())
+    }
+}
+
 fn fill_snaplen(layer: &pcapFileData, stack: &LayerStack, my_index: usize) -> Value<u32> {
     use std::convert::TryInto;
 

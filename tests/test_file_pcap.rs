@@ -119,19 +119,17 @@ pub fn test_read_reencode_pcap_bytes() {
 
 #[test]
 pub fn test_write_pcap_from_scratch() {
-    use std::convert::TryInto;
-
-    let mut pcap = PcapFile!(); // .get_layer(PcapFile!()).unwrap();
+    let mut pcap = PcapFile!();
     for i in 0..3 {
         let p = Ether!() / IP!() / GRE!() / IP!() / UDP!();
-        let dp = p.encode();
-        let len: u32 = dp.len().try_into().unwrap();
-        let pp = PcapPacket!(data = dp); // , incl_len = len, orig_len = len);
-        pcap.d.packets.push(pp);
+        let pp = PcapPacket!(data = p.encode());
+        pcap.push(pp);
     }
-    let pcap = pcap.to_stack().fill();
     println!("PCAP: {:02x?}", &pcap);
-    // std::fs::write("gre-pcap.pcap", pcap.encode()).unwrap();
+
+    if std::env::var("WRITE_PCAP").is_ok() {
+        pcap.write("gre-pcap.pcap").unwrap();
+    }
 }
 
 #[test]
