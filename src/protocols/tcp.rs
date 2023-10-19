@@ -1,6 +1,34 @@
 use crate::protocols::ip::*;
 use crate::*;
 
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(IANA_LAYERS, Proto = 6))]
+pub struct Tcp {
+    #[nproto(fill = fill_tcp_sport)]
+    pub sport: Value<u16>,
+    #[nproto(fill = fill_tcp_dport)]
+    pub dport: Value<u16>,
+    #[nproto(default = 0)]
+    pub seq: Value<u32>,
+    #[nproto(default = 0)]
+    pub ack: Value<u32>,
+    // u4 really, encoded with "reserved"
+    #[nproto(default = 5, encode = Skip, decode = Skip)]
+    pub dataofs: Value<u8>,
+    #[nproto(default = 0, encode = encode_tcp_reserved, decode = decode_tcp_reserved)]
+    pub reserved: Value<u8>,
+    #[nproto(default = 2)] // syn
+    pub flags: Value<u8>,
+
+    #[nproto(default = 8192)]
+    pub window: Value<u16>,
+    #[nproto(encode = encode_tcp_chksum, fill = fill_tcp_chksum_auto )]
+    pub chksum: Value<u16>,
+    #[nproto(default = 0)]
+    pub urgptr: Value<u16>,
+    // pub options: Vec<TcpOption>,
+}
+
 fn fill_tcp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16 {
     0xffff
 }
@@ -93,34 +121,6 @@ fn encode_tcp_chksum<E: Encoder>(
     } else {
         vec![0xee, 0xea]
     }
-}
-
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-#[nproto(register(IANA_LAYERS, Proto = 6))]
-pub struct Tcp {
-    #[nproto(fill = fill_tcp_sport)]
-    pub sport: Value<u16>,
-    #[nproto(fill = fill_tcp_dport)]
-    pub dport: Value<u16>,
-    #[nproto(default = 0)]
-    pub seq: Value<u32>,
-    #[nproto(default = 0)]
-    pub ack: Value<u32>,
-    // u4 really, encoded with "reserved"
-    #[nproto(default = 5, encode = Skip, decode = Skip)]
-    pub dataofs: Value<u8>,
-    #[nproto(default = 0, encode = encode_tcp_reserved, decode = decode_tcp_reserved)]
-    pub reserved: Value<u8>,
-    #[nproto(default = 2)] // syn
-    pub flags: Value<u8>,
-
-    #[nproto(default = 8192)]
-    pub window: Value<u16>,
-    #[nproto(encode = encode_tcp_chksum, fill = fill_tcp_chksum_auto )]
-    pub chksum: Value<u16>,
-    #[nproto(default = 0)]
-    pub urgptr: Value<u16>,
-    // pub options: Vec<TcpOption>,
 }
 
 pub enum TcpOption {}
