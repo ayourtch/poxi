@@ -1,27 +1,5 @@
 use crate::*;
 
-fn decode_arp_hwaddr<D: Decoder>(buf: &[u8], me: &mut Arp) -> Option<(ArpHardwareAddress, usize)> {
-    use std::convert::TryInto;
-
-    let (v, delta) = D::decode_vec(buf, me.hwlen.value() as usize)?;
-    let vlen = v.len();
-    match vlen {
-        6 => ArpHardwareAddress::decode::<D>(&v),
-        _ => Some((ArpHardwareAddress::Bytes(v), vlen)),
-    }
-}
-
-fn decode_arp_paddr<D: Decoder>(buf: &[u8], me: &mut Arp) -> Option<(ArpProtocolAddress, usize)> {
-    use std::convert::TryInto;
-
-    let (v, delta) = D::decode_vec(buf, me.plen.value() as usize)?;
-    let vlen = v.len();
-    match vlen {
-        4 => ArpProtocolAddress::decode::<D>(&v),
-        _ => Some((ArpProtocolAddress::Bytes(v), vlen)),
-    }
-}
-
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x0806))]
 pub struct Arp {
@@ -43,6 +21,28 @@ pub struct Arp {
     pub hwdst: Value<ArpHardwareAddress>,
     #[nproto(decode = decode_arp_paddr)]
     pub pdst: Value<ArpProtocolAddress>,
+}
+
+fn decode_arp_hwaddr<D: Decoder>(buf: &[u8], me: &mut Arp) -> Option<(ArpHardwareAddress, usize)> {
+    use std::convert::TryInto;
+
+    let (v, delta) = D::decode_vec(buf, me.hwlen.value() as usize)?;
+    let vlen = v.len();
+    match vlen {
+        6 => ArpHardwareAddress::decode::<D>(&v),
+        _ => Some((ArpHardwareAddress::Bytes(v), vlen)),
+    }
+}
+
+fn decode_arp_paddr<D: Decoder>(buf: &[u8], me: &mut Arp) -> Option<(ArpProtocolAddress, usize)> {
+    use std::convert::TryInto;
+
+    let (v, delta) = D::decode_vec(buf, me.plen.value() as usize)?;
+    let vlen = v.len();
+    match vlen {
+        4 => ArpProtocolAddress::decode::<D>(&v),
+        _ => Some((ArpProtocolAddress::Bytes(v), vlen)),
+    }
 }
 
 #[derive(Eq, PartialEq, Clone, Debug)]
