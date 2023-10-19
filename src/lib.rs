@@ -463,6 +463,7 @@ impl Index<usize> for EncodingVecVec {
 
 #[derive(Clone)]
 pub struct LayerStack {
+    pub filled: bool,
     pub layers: Vec<Box<dyn Layer>>,
 }
 
@@ -518,14 +519,19 @@ impl LayerStack {
     }
 
     pub fn encode(self) -> Vec<u8> {
+        let target = if self.filled {
+            self
+        } else {
+            self.clone().fill()
+        };
         let mut out = EncodingVecVec {
             data: vec![],
-            curr_idx: self.layers.len(),
+            curr_idx: target.layers.len(),
         };
-        for (i, ll) in (&self.layers).into_iter().enumerate().rev() {
+        for (i, ll) in (&target.layers).into_iter().enumerate().rev() {
             out.curr_idx = i;
             println!("{}: {:?}", i, &ll);
-            let ev = ll.encode(&self, i, &out);
+            let ev = ll.encode(&target, i, &out);
             out.data.push(ev);
         }
         out.data.reverse();
@@ -533,7 +539,10 @@ impl LayerStack {
     }
 
     pub fn fill(&self) -> LayerStack {
-        let mut out = LayerStack { layers: vec![] };
+        let mut out = LayerStack {
+            layers: vec![],
+            filled: true,
+        };
         for (i, ll) in (&self.layers).into_iter().enumerate() {
             ll.fill(&self, i, &mut out);
         }
@@ -624,6 +633,7 @@ pub trait Layer: Debug + mopa::Any + New {
     {
         LayerStack {
             layers: vec![self.embox()],
+            filled: false,
         }
     }
     fn type_id_is(&self, x: TypeId) -> bool {
@@ -654,7 +664,10 @@ pub trait Layer: Debug + mopa::Any + New {
             };
             layers.push(layer.embox());
         }
-        LayerStack { layers }
+        LayerStack {
+            layers,
+            filled: true,
+        }
     }
     fn decode(&self, buf: &[u8]) -> Option<(LayerStack, usize)> {
         let buflen = buf.len();

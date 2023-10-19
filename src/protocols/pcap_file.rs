@@ -67,19 +67,39 @@ fn decode_packets<D: Decoder>(
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct pcapFile {
+    #[nproto(default = 0xd4c3b2a1)]
     pub magic_number: Value<u32>, // magic number  0xa1b2c3d4: no swap required, 0xd4c3b2a1: swapped
     #[nproto(encode = encode_data, decode = decode_data)]
     pub d: pcapFileData,
 }
 
+fn fill_snaplen(layer: &pcapFileData, stack: &LayerStack, my_index: usize) -> Value<u32> {
+    use std::convert::TryInto;
+
+    let mut snaplen = layer.snaplen.value();
+    for p in &layer.packets {
+        let u32_len: u32 = p.data.len().try_into().unwrap();
+        if snaplen < u32_len {
+            snaplen = u32_len;
+        }
+    }
+    Value::Set(0)
+}
+
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 pub struct pcapFileData {
+    #[nproto(default = 2)]
     pub version_major: Value<u16>, // major version number
+    #[nproto(default = 4)]
     pub version_minor: Value<u16>, // minor version number
-    pub thiszone: Value<i32>,      // GMT to local correction
-    pub sigfigs: Value<u32>,       // accuracy of timestamps
-    pub snaplen: Value<u32>,       // max length of captured packets, in octets
-    pub network: Value<u32>,       // data link type
+    #[nproto(default = 0)]
+    pub thiszone: Value<i32>, // GMT to local correction
+    #[nproto(default = 0)]
+    pub sigfigs: Value<u32>, // accuracy of timestamps
+    #[nproto(fill = fill_snaplen)]
+    pub snaplen: Value<u32>, // max length of captured packets, in octets
+    #[nproto(default = 1)]
+    pub network: Value<u32>, // data link type
     #[nproto(encode = encode_packets, decode = decode_packets)]
     pub packets: Vec<pcapPacket>, // encoded packets
 }

@@ -118,10 +118,26 @@ pub fn test_read_reencode_pcap_bytes() {
 }
 
 #[test]
+pub fn test_write_pcap_from_scratch() {
+    use std::convert::TryInto;
+
+    let mut pcap = PcapFile!(); // .get_layer(PcapFile!()).unwrap();
+    for i in 0..3 {
+        let p = Ether!() / IP!() / GRE!() / IP!() / UDP!();
+        let dp = p.encode();
+        let len: u32 = dp.len().try_into().unwrap();
+        let pp = PcapPacket!(data = dp, incl_len = len, orig_len = len);
+        pcap.d.packets.push(pp);
+    }
+    let pcap = pcap.to_stack().fill();
+    println!("PCAP: {:02x?}", &pcap);
+    // std::fs::write("gre-pcap.pcap", pcap.encode()).unwrap();
+}
+
+#[test]
 pub fn test_write_pcap_with_gre() {
     /* not really much of a test, was just using it to write a hex into a pcap
      * bugs found: FIXME & write tests:
-     * Ether!() / IP!() / Raw(data = bytes) seems to result into incorrect pcap data when encoding
      * length of the pcap packet is not set when encoding.
      */
     use std::convert::TryInto;

@@ -751,7 +751,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
                 #greedy_decode_code
 
-                Some((LayerStack { layers }, ci))
+                Some((LayerStack { layers, filled: true }, ci))
             }
         }
     };
@@ -804,7 +804,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
                 #greedy_decode_code
 
-                Some((LayerStack { layers }, ci))
+                Some((LayerStack { layers, filled: true }, ci))
             }
 
             pub fn of(stack: &LayerStack) -> Self {
