@@ -1,12 +1,5 @@
 use crate::*;
 
-fn fill_dmac(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> MacAddr {
-    MacAddr::from("ff:ff:ff:ff:ff:ff")
-}
-fn fill_crc(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u32 {
-    0x1234
-}
-
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(encoder(BinaryBigEndian))]
 pub struct ether {
@@ -21,4 +14,11 @@ pub struct ether {
     pub etype: Value<u16>,
     //#[nproto(fill = fill_crc)]
     // pub crc: Value<u32>,
+}
+
+fn fill_dmac(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> MacAddr {
+    MacAddr::from("ff:ff:ff:ff:ff:ff")
+}
+fn fill_crc(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u32 {
+    0x1234
 }
