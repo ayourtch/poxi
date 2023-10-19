@@ -1,5 +1,33 @@
 use crate::*;
 
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x88be))]
+pub struct erspan {
+    // encoded/decoded by the next field encoders
+    #[nproto(encode = Skip, decode = Skip)]
+    pub version: Value<u8>,
+    #[nproto(encode = encode_version_and_vlan, decode = decode_version_and_vlan)]
+    pub vlan: Value<u16>,
+
+    #[nproto(encode = Skip, decode = Skip)]
+    pub cos: Value<u8>,
+    // 2 bit
+    #[nproto(encode = Skip, decode = Skip)]
+    pub encap_type: Value<u8>,
+    #[nproto(encode = Skip, decode = Skip)]
+    pub truncated: Value<bool>,
+    // 10 bit
+    #[nproto(encode = encode_second_u16_fields, decode = decode_second_u16_fields)]
+    pub session_id: Value<u16>,
+    // 20 bit
+    // encoded/decoded by the next decoder
+    #[nproto(encode = Skip, decode = Skip)]
+    pub port_index: Value<u32>,
+    // reserved value
+    #[nproto(encode = encode_u32_reserved1, decode = decode_u32_reserved1)]
+    pub reserved1: Value<u32>,
+}
+
 fn encode_second_u16_fields<E: Encoder>(
     me: &erspan,
     stack: &LayerStack,
@@ -64,32 +92,4 @@ fn encode_u32_reserved1<E: Encoder>(
     let mut the_u32: u32 = (u32::from(me.port_index.value()) & 0xfffff)
         | u32::from(me.reserved1.value() & 0xfff) << 20;
     E::encode_u32(the_u32)
-}
-
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-#[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x88be))]
-pub struct erspan {
-    // encoded/decoded by the next field encoders
-    #[nproto(encode = Skip, decode = Skip)]
-    pub version: Value<u8>,
-    #[nproto(encode = encode_version_and_vlan, decode = decode_version_and_vlan)]
-    pub vlan: Value<u16>,
-
-    #[nproto(encode = Skip, decode = Skip)]
-    pub cos: Value<u8>,
-    // 2 bit
-    #[nproto(encode = Skip, decode = Skip)]
-    pub encap_type: Value<u8>,
-    #[nproto(encode = Skip, decode = Skip)]
-    pub truncated: Value<bool>,
-    // 10 bit
-    #[nproto(encode = encode_second_u16_fields, decode = decode_second_u16_fields)]
-    pub session_id: Value<u16>,
-    // 20 bit
-    // encoded/decoded by the next decoder
-    #[nproto(encode = Skip, decode = Skip)]
-    pub port_index: Value<u32>,
-    // reserved value
-    #[nproto(encode = encode_u32_reserved1, decode = decode_u32_reserved1)]
-    pub reserved1: Value<u32>,
 }
