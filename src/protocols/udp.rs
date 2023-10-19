@@ -1,6 +1,19 @@
 use crate::protocols::ip::*;
 use crate::*;
 
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[nproto(register(IANA_LAYERS, Proto = 17))]
+pub struct Udp {
+    #[nproto(fill = fill_udp_sport)]
+    pub sport: Value<u16>,
+    pub dport: Value<u16>,
+    #[nproto(encode = encode_udp_len, fill = fill_udp_len_auto )]
+    pub len: Value<u16>,
+    // #[nproto(auto = encode_csum)]
+    #[nproto(encode = encode_udp_chksum, fill = fill_udp_chksum_auto )]
+    pub chksum: Value<u16>,
+}
+
 fn fill_udp_len_auto(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> Value<u16> {
     Value::Auto
 }
@@ -89,17 +102,4 @@ fn encode_udp_chksum<E: Encoder>(
 
 fn fill_udp_sport(layer: &dyn Layer, stack: &LayerStack, my_index: usize) -> u16 {
     0xffff
-}
-
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
-#[nproto(register(IANA_LAYERS, Proto = 17))]
-pub struct Udp {
-    #[nproto(fill = fill_udp_sport)]
-    pub sport: Value<u16>,
-    pub dport: Value<u16>,
-    #[nproto(encode = encode_udp_len, fill = fill_udp_len_auto )]
-    pub len: Value<u16>,
-    // #[nproto(auto = encode_csum)]
-    #[nproto(encode = encode_udp_chksum, fill = fill_udp_chksum_auto )]
-    pub chksum: Value<u16>,
 }
