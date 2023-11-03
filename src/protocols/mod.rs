@@ -8,6 +8,7 @@ pub mod pcap_file;
 pub mod raw;
 pub mod tcp;
 pub mod udp;
+pub mod vxlan;
 
 pub mod all {
     pub use crate::encdec::binary_big_endian::BinaryBigEndian;

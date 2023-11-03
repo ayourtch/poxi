@@ -161,3 +161,31 @@ pub fn test_pcap3_csum() {
         }
     }
 }
+
+#[test]
+pub fn test_pcap_vxlan1() {
+    use scarust::protocols::vxlan::Vxlan;
+
+    let packets = read_pcap("vxlan1.pcap");
+    for d in packets {
+        println!("p: {:02x?}", &d);
+        let p = Ether!().decode(&d).unwrap().0;
+        println!("p_decoded: {:02x?}", &p);
+        assert_eq!(p[VXLAN!()].vni, Value::Set(0x010203));
+        let mut pn = p.clone();
+    }
+}
+
+#[test]
+pub fn test_pcap_vxlan2() {
+    use scarust::protocols::vxlan::Vxlan;
+
+    let packets = read_pcap("vxlan2.pcap");
+    for d in packets {
+        println!("p: {:02x?}", &d);
+        let p = Ether!().decode(&d).unwrap().0;
+        println!("P_DECODED: {:02x?}", &p);
+        assert_eq!(p[VXLAN!()].vni, Value::Set(0x010203));
+        let mut pn = p.clone();
+    }
+}

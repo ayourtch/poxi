@@ -5,7 +5,9 @@ use crate::*;
 #[nproto(register(IANA_LAYERS, Proto = 17))]
 pub struct Udp {
     #[nproto(fill = fill_udp_sport)]
+    #[nproto(next: UDP_SRC_PORT_APPS => SrcPort )]
     pub sport: Value<u16>,
+    #[nproto(next: UDP_DST_PORT_APPS => DstPort )]
     pub dport: Value<u16>,
     #[nproto(encode = encode_udp_len, fill = fill_udp_len_auto )]
     pub len: Value<u16>,
