@@ -1,5 +1,7 @@
 //use std::any::Any;
-use serde::{Serialize, Deserialize, Serializer};
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use std::marker::PhantomData;
+
 
 
 
@@ -190,6 +192,47 @@ impl<T: Serialize> Serialize for Value <T> {
         }
     }
 }
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Value<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+    use serde::de::Visitor;
+    use serde::de::Error;
+        struct ValueVisitor<T> {
+            marker: PhantomData<T>,
+        }
+        impl<'de, T> Visitor<'de> for ValueVisitor<T>
+        where
+            T: Deserialize<'de>,
+        {
+            type Value = Value<T>;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("Value")
+            }
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+               if v == "<auto>" {
+                  Ok(Value::Auto)
+               } else if v == "<random>" {
+                  Ok(Value::Random)
+               } else {
+                  panic!("TBD")
+               }
+            }
+        }
+
+        return Ok(deserializer.deserialize_str(
+            ValueVisitor {
+                marker: PhantomData,
+            },
+        )?);
+    }
+}
+
 
 impl<T: Clone + std::default::Default> Value<T>
 where
