@@ -698,6 +698,7 @@ impl <'a> Eq for LayerStack<'a> {
 
 pub mod encdec;
 pub mod protocols;
+pub mod typ;
 
 pub fn update_inet_sum(sum: u32, data: &[u8]) -> u32 {
     let mut sum: u32 = sum;

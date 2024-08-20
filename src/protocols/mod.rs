@@ -1,8 +1,8 @@
 pub mod arp;
+pub mod bootp;
 pub mod dot1q;
 pub mod erspan;
 pub mod ether;
-pub mod geneve;
 pub mod gre;
 pub mod ip;
 pub mod pcap_file;
@@ -14,6 +14,7 @@ pub mod vxlan;
 pub mod all {
     pub use crate::encdec::binary_big_endian::BinaryBigEndian;
     pub use crate::protocols::arp::*;
+    pub use crate::protocols::bootp::*;
     pub use crate::protocols::dot1q::*;
     pub use crate::protocols::erspan::*;
     pub use crate::protocols::ether::*;

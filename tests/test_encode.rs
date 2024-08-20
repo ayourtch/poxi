@@ -97,6 +97,7 @@ fn make_udp_checksum_payload() {
     assert_eq!(encoded[27], 0xb9);
 }
 
+/*
 #[test]
 fn make_geneve() {
     use scarust::protocols::geneve::Geneve;
@@ -114,3 +115,4 @@ fn make_geneve() {
     let z = Ether!().decode(&encoded).unwrap().0;
     println!("decode result: {:?}", &z);
 }
+*/

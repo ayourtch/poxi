@@ -175,6 +175,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
+name = "generic-array"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe739944a5406424e080edccb6add95685130b9f160d5407c639c7df0c5836b0"
+dependencies = [
+ "serde",
+ "typenum",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -538,6 +548,7 @@ name = "scarust"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "generic-array",
  "hex",
  "itertools 0.11.0",
  "lazy_static",
@@ -547,6 +558,7 @@ dependencies = [
  "pcap-parser",
  "rand",
  "scarust-derive",
+ "typenum",
 ]
 
 [[package]]
@@ -634,6 +646,12 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "typenum"
+version = "1.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 
 [[package]]
 name = "unicode-ident"

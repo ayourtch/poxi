@@ -38,7 +38,7 @@ fn get_pcap_path(name: &str) -> PathBuf {
 pub fn read_pcap(pcapname: &str) -> Vec<Vec<u8>> {
     let mut out: Vec<Vec<u8>> = vec![];
     let path = get_pcap_path(pcapname);
-    let file = File::open(path).expect("File open failed");
+    let file = File::open(path).expect(&format!("File open failed for {}", &pcapname));
     let mut reader = LegacyPcapReader::new(65536, file).expect("LegacyPcapReader");
     let mut num_blocks = 0;
     loop {
@@ -187,5 +187,17 @@ pub fn test_pcap_vxlan2() {
         println!("P_DECODED: {:02x?}", &p);
         assert_eq!(p[VXLAN!()].vni, Value::Set(0x010203));
         let mut pn = p.clone();
+    }
+}
+
+#[test]
+pub fn test_pcap_dhcp() {
+    use scarust::protocols::bootp::Bootp;
+
+    let packets = read_pcap("dhcp.pcap");
+    for d in packets {
+        // println!("p: {:02x?}", &d);
+        let p = Ether!().decode(&d).unwrap().0;
+        println!("p_decoded: {:#02x?}", &p);
     }
 }
