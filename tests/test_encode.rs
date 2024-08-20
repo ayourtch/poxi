@@ -19,6 +19,22 @@ pub struct testProto {
 }
 
 #[test]
+fn test_multiple_layer_instances() {
+    let x = Ether!() / IP!() / UDP!(dport = 1111) / UDP!(dport = 2222);
+    let udp = &x[UDP!()];
+    // We always return the *first* occurrence
+    assert_eq!(udp.dport.value(), 1111);
+}
+
+#[test]
+fn test_multiple_layer_instances_innermost() {
+    let x = Ether!() / IP!() / UDP!(dport = 1111) / UDP!(dport = 2222);
+    if let Some(udp) = x.get_innermost_layer(UDP!()) {
+        assert_eq!(udp.dport.value(), 2222);
+    }
+}
+
+#[test]
 fn encode_arp() {
     let x = Ether!(src = "02:02:02:02:02:02")
         / ARP!(

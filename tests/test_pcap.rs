@@ -103,6 +103,8 @@ pub fn test_pcap1() {
     let packets = decode_pcap("pcap1.pcap");
     for p in packets {
         println!("p: {:?}", &p);
+        let bytes = p.encode();
+        println!("bytes: {:?}", &bytes);
     }
 }
 

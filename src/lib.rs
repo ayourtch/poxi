@@ -1,4 +1,15 @@
 //use std::any::Any;
+
+#[macro_use]
+extern crate doc_comment;
+
+fn readme_test() {
+    doc_comment! {
+        include_str!("../README.md"),
+        fn readme_test_examples() {}
+    }
+}
+
 pub use std::any::TypeId;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -495,6 +506,14 @@ impl LayerStack {
         for ll in &self.layers {
             if ll.type_id_is(TypeId::of::<T>()) {
                 return Some(ll.downcast_ref().unwrap());
+            }
+        }
+        return None;
+    }
+    pub fn get_innermost_layer<T: Layer>(&self, item: T) -> Option<&T> {
+        for ref layer in self.layers.iter().rev() {
+            if layer.type_id_is(TypeId::of::<T>()) {
+                return Some(layer.downcast_ref().unwrap());
             }
         }
         return None;
