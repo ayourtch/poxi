@@ -1,9 +1,6 @@
 //use std::any::Any;
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::marker::PhantomData;
-
-
-
 
 #[macro_use]
 extern crate doc_comment;
@@ -178,17 +175,17 @@ pub enum Value<T> {
     Set(T),
 }
 
-impl<T: Serialize> Serialize for Value <T> {
+impl<T: Serialize> Serialize for Value<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let data = &self;
         match data {
-           Value::Auto => serializer.serialize_str("<auto>"),
-           Value::Random => serializer.serialize_str("<random>"),
-           Value::Func(f) => panic!("Serializing functions is not supported"),
-           Value::Set(v) => v.serialize(serializer),
+            Value::Auto => serializer.serialize_str("<auto>"),
+            Value::Random => serializer.serialize_str("<random>"),
+            Value::Func(f) => panic!("Serializing functions is not supported"),
+            Value::Set(v) => v.serialize(serializer),
         }
     }
 }
@@ -198,8 +195,8 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Value<T> {
     where
         D: Deserializer<'de>,
     {
-    use serde::de::Visitor;
-    use serde::de::Error;
+        use serde::de::Error;
+        use serde::de::Visitor;
         struct ValueVisitor<T> {
             marker: PhantomData<T>,
         }
@@ -215,24 +212,21 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Value<T> {
             where
                 E: Error,
             {
-               if v == "<auto>" {
-                  Ok(Value::Auto)
-               } else if v == "<random>" {
-                  Ok(Value::Random)
-               } else {
-                  panic!("TBD")
-               }
+                if v == "<auto>" {
+                    Ok(Value::Auto)
+                } else if v == "<random>" {
+                    Ok(Value::Random)
+                } else {
+                    panic!("TBD")
+                }
             }
         }
 
-        return Ok(deserializer.deserialize_str(
-            ValueVisitor {
-                marker: PhantomData,
-            },
-        )?);
+        return Ok(deserializer.deserialize_str(ValueVisitor {
+            marker: PhantomData,
+        })?);
     }
 }
-
 
 impl<T: Clone + std::default::Default> Value<T>
 where
@@ -334,8 +328,8 @@ impl Serialize for MacAddr {
     where
         S: Serializer,
     {
-      let s = format!("{}", self.0);
-      serializer.serialize_str(&s)
+        let s = format!("{}", self.0);
+        serializer.serialize_str(&s)
     }
 }
 
@@ -430,11 +424,10 @@ impl Serialize for Ipv4Address {
     where
         S: Serializer,
     {
-      let s = format!("{}", self.0);
-      serializer.serialize_str(&s)
+        let s = format!("{}", self.0);
+        serializer.serialize_str(&s)
     }
 }
-
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseIpv4AddressError;

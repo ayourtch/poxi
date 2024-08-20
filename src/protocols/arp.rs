@@ -1,6 +1,5 @@
 use crate::*;
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x0806))]
@@ -92,7 +91,6 @@ impl Serialize for ArpHardwareAddress {
     }
 }
 
-
 impl Distribution<ArpHardwareAddress> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ArpHardwareAddress {
         ArpHardwareAddress::Ether(MacAddr::new(
@@ -158,9 +156,6 @@ impl Serialize for ArpProtocolAddress {
         }
     }
 }
-
-
-
 
 // FIXME: take into account the plen from packet
 impl Decode for ArpProtocolAddress {

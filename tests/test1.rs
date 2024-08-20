@@ -2,8 +2,8 @@ use scarust::Value::Random;
 use scarust::*;
 #[macro_use]
 extern crate scarust_derive;
+use serde::Serialize;
 use serde_json;
-use serde::{Serialize};
 
 use scarust::protocols::all::*;
 
@@ -23,9 +23,9 @@ pub struct testProto {
 
 #[test]
 fn serialize_1() {
-  let tp = IP!(); // TestProto!();
-  let j = serde_json::to_string(&tp).unwrap();
-  eprintln!("JSON: {}", j);
+    let tp = IP!(); // TestProto!();
+    let j = serde_json::to_string(&tp).unwrap();
+    eprintln!("JSON: {}", j);
 }
 
 #[test]
