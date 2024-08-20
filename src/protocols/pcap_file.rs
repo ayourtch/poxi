@@ -1,11 +1,13 @@
 use crate::encdec::binary_little_endian::BinaryLittleEndian;
 use crate::*;
+use serde::{Serialize, Deserialize};
+
 
 /*
  * This is a toy pcap encoder/decoder
  */
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct pcapFile {
     #[nproto(default = 0xd4c3b2a1)]
     pub magic_number: Value<u32>, // magic number  0xa1b2c3d4: no swap required, 0xd4c3b2a1: swapped
@@ -24,7 +26,7 @@ impl pcapFile {
         std::fs::write(fname, self.clone().to_stack().encode())
     }
 }
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct pcapFileData {
     #[nproto(default = 2)]
     pub version_major: Value<u16>, // major version number
@@ -42,7 +44,7 @@ pub struct pcapFileData {
     pub packets: Vec<pcapPacket>, // encoded packets
 }
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(non_greedy_decode)]
 pub struct pcapPacket {
     pub ts_sec: Value<u32>,  /* timestamp seconds */

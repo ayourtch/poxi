@@ -28,6 +28,8 @@ use crate::Value::Random;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 
+use serde::{Serialize, Deserialize};
+
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct FixedSizeString<N: ArrayLength>(GenericArray<u8, N>);
 
@@ -128,7 +130,6 @@ where
     }
 }
 
-/*
 impl<N: ArrayLength> Serialize for FixedSizeString<N> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -701,6 +702,7 @@ impl<'de, T: Debug + Clone + AsEnumFlag + Deserialize<'de>> Deserialize<'de> for
     where
         D: Deserializer<'de>,
     {
+        use serde::de::Error;
         struct EnumFlagVisitor<T> {
             marker: PhantomData<T>,
         }
@@ -719,7 +721,7 @@ impl<'de, T: Debug + Clone + AsEnumFlag + Deserialize<'de>> Deserialize<'de> for
                 E: Error,
             {
                 let mut res: Vec<T> = vec![];
-                trace!("{}", v);
+                // trace!("{}", v);
                 /* let number = u32::pow(2, v);
                 let enum_d: T = AsU32::from_u32(number);
                 res.push(enum_d);*/
@@ -740,7 +742,7 @@ impl<'de, T: Debug + Clone + AsEnumFlag + Deserialize<'de>> Deserialize<'de> for
                 E: Error,
             {
                 let mut res: Vec<T> = vec![];
-                trace!("{}", v);
+                // trace!("{}", v);
                 /* let number = u32::pow(2, v);
                 let enum_d: T = AsU32::from_u32(number);
                 res.push(enum_d);*/
@@ -761,7 +763,7 @@ impl<'de, T: Debug + Clone + AsEnumFlag + Deserialize<'de>> Deserialize<'de> for
                 E: Error,
             {
                 let mut res: Vec<T> = vec![];
-                trace!("{}", v);
+                // trace!("{}", v);
                 /* let number = u32::pow(2, v);
                 let enum_d: T = AsU32::from_u32(number);
                 res.push(enum_d);*/
@@ -800,4 +802,3 @@ impl<'de, T: Debug + Clone + AsEnumFlag + Deserialize<'de>> Deserialize<'de> for
     }
 }
 
-*/

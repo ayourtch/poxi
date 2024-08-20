@@ -1,6 +1,7 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(encoder(BinaryBigEndian))]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x6558))]
 pub struct ether {

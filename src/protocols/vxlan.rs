@@ -1,9 +1,10 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 /*
  * VXLAN encapsulation
  */
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(UDP_DST_PORT_APPS, DstPort = 4789))]
 #[nproto(register(UDP_SRC_PORT_APPS, SrcPort = 4789))]
 pub struct Vxlan {

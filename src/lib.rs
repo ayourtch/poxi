@@ -1,5 +1,6 @@
 //use std::any::Any;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::ser::SerializeTuple;
 use std::marker::PhantomData;
 
 #[macro_use]
@@ -38,7 +39,7 @@ use rand::Rng;
 use linkme::distributed_slice;
 
 use crate::encdec::binary_big_endian::BinaryBigEndian;
-#[derive(NetworkProtocol, Debug, Clone)]
+#[derive(NetworkProtocol, Debug, Clone, Serialize, Deserialize)]
 #[nproto(registry(ETHERTYPE_LAYERS, Ethertype: u16))]
 #[nproto(registry(IANA_LAYERS, Proto: u8))]
 #[nproto(registry(ICMP_TYPES, Type: u8))]
@@ -333,6 +334,34 @@ impl Serialize for MacAddr {
     }
 }
 
+impl<'de> Deserialize<'de> for MacAddr {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+        use serde::de::Visitor;
+        struct MacAddrVisitor {}
+        impl<'de> Visitor<'de> for MacAddrVisitor
+        {
+            type Value = MacAddr;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("MacAddr")
+            }
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                panic!("TBD")
+            }
+        }
+
+        return Ok(deserializer.deserialize_str(MacAddrVisitor {
+        })?);
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseMacAddrError;
 
@@ -428,6 +457,34 @@ impl Serialize for Ipv4Address {
         serializer.serialize_str(&s)
     }
 }
+
+impl<'de> Deserialize<'de> for Ipv4Address {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+        use serde::de::Visitor;
+        struct Ipv4Visitor {}
+        impl<'de> Visitor<'de> for Ipv4Visitor
+        {
+            type Value = Ipv4Address;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("Ipv4Address")
+            }
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                panic!("TBD")
+            }
+        }
+
+        return Ok(deserializer.deserialize_str(Ipv4Visitor {
+        })?);
+    }
+}
+
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseIpv4AddressError;
@@ -550,11 +607,42 @@ impl Index<usize> for EncodingVecVec {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LayerStack {
     pub filled: bool,
     pub layers: Vec<Box<dyn Layer>>,
 }
+
+/*
+impl Serialize for LayerStack {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut len = self.layers.len();
+        let mut seq = serializer.serialize_tuple(len)?;
+        for (i, ll) in (&self.layers).into_iter().enumerate() {
+            seq.serialize_element(ll)?;
+        }
+        seq.end()
+    }
+}
+*/
+/*
+impl Serialize for dyn Layer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = format!("FIXME {:?}", self);
+        serializer.serialize_str(&s)
+        // eprintln!("SERIALIZE: {}\n", s);
+        // self.downcast_mut::<T>().unwrap().serialize(serializer)
+        // self.downcast_ref::<T>().unwrap().serialize(serializer)
+    }
+}
+*/
+
 
 impl LayerStack {
     pub fn gg<T: Layer + Clone>(layer: Box<dyn Layer>) -> T {
@@ -720,7 +808,7 @@ impl<T: Default> New for T {
         Self::default()
     }
 }
-
+#[typetag::serde(tag = "layertype")]
 pub trait Layer: Debug + mopa::Any + New {
     fn embox(self) -> Box<dyn Layer>;
     fn box_clone(&self) -> Box<dyn Layer>;

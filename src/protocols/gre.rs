@@ -1,4 +1,6 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
+
 /*
  * GRE packets have an interesting story - https://en.wikipedia.org/wiki/Generic_Routing_Encapsulation
  *
@@ -8,7 +10,7 @@ use crate::*;
  *
  */
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(IANA_LAYERS, Proto = 47))]
 pub struct Gre {
     #[nproto(encode = Skip, decode = Skip)] // encoded/decoded by "version" field decoder

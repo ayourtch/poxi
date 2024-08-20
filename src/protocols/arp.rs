@@ -1,7 +1,7 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x0806))]
 pub struct Arp {
     #[nproto(default = 1)]
@@ -91,6 +91,34 @@ impl Serialize for ArpHardwareAddress {
     }
 }
 
+impl<'de> Deserialize<'de> for ArpHardwareAddress {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+        use serde::de::Visitor;
+        struct ArpHAVisitor {}
+        impl<'de> Visitor<'de> for ArpHAVisitor
+        {
+            type Value = ArpHardwareAddress;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("ArpHardwareAddress")
+            }
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                panic!("TBD")
+            }
+        }
+
+        return Ok(deserializer.deserialize_str(ArpHAVisitor {
+        })?);
+    }
+}
+
+
 impl Distribution<ArpHardwareAddress> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ArpHardwareAddress {
         ArpHardwareAddress::Ether(MacAddr::new(
@@ -154,6 +182,33 @@ impl Serialize for ArpProtocolAddress {
             Self::IP(x) => (*x).0.serialize(serializer),
             Self::Bytes(b) => b.to_vec().serialize(serializer),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for ArpProtocolAddress {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+        use serde::de::Visitor;
+        struct ArpPAVisitor {}
+        impl<'de> Visitor<'de> for ArpPAVisitor
+        {
+            type Value = ArpProtocolAddress;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("ArpProtocolAddress")
+            }
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                panic!("TBD")
+            }
+        }
+
+        return Ok(deserializer.deserialize_str(ArpPAVisitor {
+        })?);
     }
 }
 

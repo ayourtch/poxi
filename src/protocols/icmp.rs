@@ -1,6 +1,8 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(IANA_LAYERS, Proto = 1))]
 pub struct Icmp {
     #[nproto(next: ICMP_TYPES => Type)]
@@ -10,14 +12,14 @@ pub struct Icmp {
     pub chksum: Value<u16>,
 }
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(ICMP_TYPES, Type = 8))]
 pub struct echo {
     pub identifier: Value<u16>,
     pub sequence: Value<u16>,
 }
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(ICMP_TYPES, Type = 0))]
 pub struct echoReply {
     pub identifier: Value<u16>,

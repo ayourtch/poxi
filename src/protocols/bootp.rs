@@ -1,6 +1,7 @@
 use crate::typ::string::*;
 use crate::*;
 use typenum::{U128, U16, U64}; // FixedSizeString;
+use serde::{Serialize, Deserialize};
 
 /*
  * Bootp encapsulation
@@ -10,7 +11,7 @@ use typenum::{U128, U16, U64}; // FixedSizeString;
 #[nproto(register(UDP_SRC_PORT_APPS, SrcPort = 67))]
 #[nproto(register(UDP_DST_PORT_APPS, DstPort = 68))]
 #[nproto(register(UDP_SRC_PORT_APPS, SrcPort = 68))]
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Bootp {
     #[nproto(default = 0x01)] // "Request" by default
     pub op: Value<u8>,

@@ -1,7 +1,8 @@
 use crate::protocols::ip::*;
 use crate::*;
+use serde::Serialize;
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(IANA_LAYERS, Proto = 17))]
 pub struct Udp {
     #[nproto(fill = fill_udp_sport)]

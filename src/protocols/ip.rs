@@ -1,7 +1,7 @@
 use crate::*;
 use serde::Serialize;
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x800))]
 #[nproto(register(IANA_LAYERS, Proto = 4))]
 pub struct Ip {
@@ -33,7 +33,7 @@ pub struct Ip {
 
 use std::num::ParseIntError;
 
-#[derive(Clone, Debug, Eq, PartialEq, Default, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct IpFlags {
     // FIXME
 }
@@ -69,7 +69,7 @@ impl Distribution<IpFlags> for Standard {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum IpOption {
     NOP(),
     SourceRoute(Vec<Ipv4Address>),

@@ -1,6 +1,8 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x88be))]
 pub struct erspan {
     // encoded/decoded by the next field encoders
@@ -28,7 +30,7 @@ pub struct erspan {
     pub reserved1: Value<u32>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum ErspanType {
     #[default]

@@ -1,6 +1,8 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x8100))]
 pub struct dot1Q {
     #[nproto(default = 0, encode = Skip, decode = Skip)]

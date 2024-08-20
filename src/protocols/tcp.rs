@@ -1,7 +1,8 @@
 use crate::protocols::ip::*;
 use crate::*;
+use serde::Serialize;
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(IANA_LAYERS, Proto = 6))]
 pub struct Tcp {
     #[nproto(fill = fill_tcp_sport)]

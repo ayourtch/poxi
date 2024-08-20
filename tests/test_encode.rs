@@ -3,8 +3,9 @@ use scarust::*;
 #[macro_use]
 extern crate scarust_derive;
 use scarust::protocols::all::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct testProto {
     #[nproto(default = 4, encode = Skip)]
     pub version: Value<u8>,

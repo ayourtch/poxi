@@ -1,9 +1,11 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
+
 /*
  * GENEVE encapsulation: Very incomplete, no option parsing/encoding, etc. FIXME
  */
 
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(UDP_DST_PORT_APPS, DstPort = 6081))]
 #[nproto(register(UDP_SRC_PORT_APPS, SrcPort = 6081))]
 pub struct Geneve {

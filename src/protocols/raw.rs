@@ -1,12 +1,15 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(decode_suppress)]
 pub struct raw {
     #[nproto(decode = Skip)]
     pub data: Vec<u8>,
 }
 
+#[typetag::serde]
 impl Layer for String {
     fn embox(self) -> Box<dyn Layer> {
         Box::new(self)

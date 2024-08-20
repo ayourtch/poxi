@@ -876,7 +876,7 @@ pub fn network_protocol(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
         }
 
-
+        #[typetag::serde]
         impl Layer for #name {
             fn embox(self) -> Box<dyn Layer> {
                 Box::new(self)
