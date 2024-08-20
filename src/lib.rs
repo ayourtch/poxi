@@ -45,6 +45,7 @@ use crate::encdec::binary_big_endian::BinaryBigEndian;
 #[nproto(registry(ICMP_TYPES, Type: u8))]
 #[nproto(registry(UDP_SRC_PORT_APPS, SrcPort: u16))]
 #[nproto(registry(UDP_DST_PORT_APPS, DstPort: u16))]
+#[nproto(registry(BOOTP_VENDORS, VendorCookie: u32))]
 /* Only here as a target of derive + attribute macros to make registries */
 struct protocolRegistriesSentinel;
 
