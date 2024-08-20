@@ -2,6 +2,7 @@ use crate::*;
 
 #[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq)]
 #[nproto(encoder(BinaryBigEndian))]
+#[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x6558))]
 pub struct ether {
     #[nproto(fill = fill_dmac, default = "01:02:03:04:05:06")]
     // #[nproto(default = "01:02:03:04:05:06")]
