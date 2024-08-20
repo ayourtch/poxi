@@ -28,6 +28,7 @@ use crate::encdec::binary_big_endian::BinaryBigEndian;
 #[derive(NetworkProtocol, Debug, Clone)]
 #[nproto(registry(ETHERTYPE_LAYERS, Ethertype: u16))]
 #[nproto(registry(IANA_LAYERS, Proto: u8))]
+#[nproto(registry(ICMP_TYPES, Type: u8))]
 #[nproto(registry(UDP_SRC_PORT_APPS, SrcPort: u16))]
 #[nproto(registry(UDP_DST_PORT_APPS, DstPort: u16))]
 /* Only here as a target of derive + attribute macros to make registries */
