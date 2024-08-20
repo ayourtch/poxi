@@ -96,3 +96,21 @@ fn make_udp_checksum_payload() {
     assert_eq!(encoded[26], 0x07);
     assert_eq!(encoded[27], 0xb9);
 }
+
+#[test]
+fn make_geneve() {
+    use scarust::protocols::geneve::Geneve;
+    let x = Ether!()
+        / IP!(src = "192.168.1.1", dst = "192.168.2.2")
+        / UDP!()
+        / GENEVE!(vni = 0x223344)
+        / Ether!()
+        / IP!(src = "192.0.2.1", dst = "192.0.2.2")
+        / UDP!(dport = 234)
+        / "testing".to_string();
+    eprintln!("Geneve: {:x?}", &x);
+    let encoded = x.clone().encode();
+    eprintln!("Encoded Geneve: {:02x?}", &encoded);
+    let z = Ether!().decode(&encoded).unwrap().0;
+    println!("decode result: {:?}", &z);
+}

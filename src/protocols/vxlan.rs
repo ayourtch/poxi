@@ -26,8 +26,8 @@ fn encode_vni_and_ru82<E: Encoder>(
     use std::convert::TryInto;
 
     let mut out: Vec<u8> = vec![];
-    out.push(((me.vni.value() << 16) & 0xff).try_into().unwrap());
-    out.push(((me.vni.value() << 8) & 0xff).try_into().unwrap());
+    out.push(((me.vni.value() >> 16) & 0xff).try_into().unwrap());
+    out.push(((me.vni.value() >> 8) & 0xff).try_into().unwrap());
     out.push((me.vni.value() & 0xff).try_into().unwrap());
     out.push(me.reserved_u8_2.value());
     out
