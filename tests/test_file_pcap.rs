@@ -14,9 +14,11 @@ use pcap_parser::traits::PcapReaderIterator;
 use pcap_parser::LegacyPcapReader;
 use pcap_parser::*;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(
+    FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize,
+)]
 pub struct testProto {
     #[nproto(default = 4, encode = Skip)]
     pub version: Value<u8>,

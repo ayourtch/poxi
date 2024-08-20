@@ -1,7 +1,9 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(
+    FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize,
+)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x0806))]
 pub struct Arp {
     #[nproto(default = 1)]
@@ -99,8 +101,7 @@ impl<'de> Deserialize<'de> for ArpHardwareAddress {
         use serde::de::Error;
         use serde::de::Visitor;
         struct ArpHAVisitor {}
-        impl<'de> Visitor<'de> for ArpHAVisitor
-        {
+        impl<'de> Visitor<'de> for ArpHAVisitor {
             type Value = ArpHardwareAddress;
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("ArpHardwareAddress")
@@ -113,11 +114,9 @@ impl<'de> Deserialize<'de> for ArpHardwareAddress {
             }
         }
 
-        return Ok(deserializer.deserialize_str(ArpHAVisitor {
-        })?);
+        return Ok(deserializer.deserialize_str(ArpHAVisitor {})?);
     }
 }
-
 
 impl Distribution<ArpHardwareAddress> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ArpHardwareAddress {
@@ -193,8 +192,7 @@ impl<'de> Deserialize<'de> for ArpProtocolAddress {
         use serde::de::Error;
         use serde::de::Visitor;
         struct ArpPAVisitor {}
-        impl<'de> Visitor<'de> for ArpPAVisitor
-        {
+        impl<'de> Visitor<'de> for ArpPAVisitor {
             type Value = ArpProtocolAddress;
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("ArpProtocolAddress")
@@ -207,8 +205,7 @@ impl<'de> Deserialize<'de> for ArpProtocolAddress {
             }
         }
 
-        return Ok(deserializer.deserialize_str(ArpPAVisitor {
-        })?);
+        return Ok(deserializer.deserialize_str(ArpPAVisitor {})?);
     }
 }
 

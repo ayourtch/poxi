@@ -28,7 +28,7 @@ use crate::Value::Random;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct FixedSizeString<N: ArrayLength>(GenericArray<u8, N>);
@@ -801,4 +801,3 @@ impl<'de, T: Debug + Clone + AsEnumFlag + Deserialize<'de>> Deserialize<'de> for
         }
     }
 }
-

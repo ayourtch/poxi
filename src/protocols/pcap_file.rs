@@ -1,7 +1,6 @@
 use crate::encdec::binary_little_endian::BinaryLittleEndian;
 use crate::*;
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 /*
  * This is a toy pcap encoder/decoder

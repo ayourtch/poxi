@@ -1,5 +1,5 @@
 use crate::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /*
  * GRE packets have an interesting story - https://en.wikipedia.org/wiki/Generic_Routing_Encapsulation

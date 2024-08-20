@@ -1,7 +1,7 @@
 use crate::typ::string::*;
 use crate::*;
+use serde::{Deserialize, Serialize};
 use typenum::{U128, U16, U64}; // FixedSizeString;
-use serde::{Serialize, Deserialize};
 
 /*
  * Bootp encapsulation

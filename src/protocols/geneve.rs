@@ -1,5 +1,5 @@
 use crate::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /*
  * GENEVE encapsulation: Very incomplete, no option parsing/encoding, etc. FIXME

@@ -1,6 +1,6 @@
 //use std::any::Any;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::ser::SerializeTuple;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::marker::PhantomData;
 
 #[macro_use]
@@ -342,8 +342,7 @@ impl<'de> Deserialize<'de> for MacAddr {
         use serde::de::Error;
         use serde::de::Visitor;
         struct MacAddrVisitor {}
-        impl<'de> Visitor<'de> for MacAddrVisitor
-        {
+        impl<'de> Visitor<'de> for MacAddrVisitor {
             type Value = MacAddr;
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("MacAddr")
@@ -356,11 +355,9 @@ impl<'de> Deserialize<'de> for MacAddr {
             }
         }
 
-        return Ok(deserializer.deserialize_str(MacAddrVisitor {
-        })?);
+        return Ok(deserializer.deserialize_str(MacAddrVisitor {})?);
     }
 }
-
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseMacAddrError;
@@ -466,8 +463,7 @@ impl<'de> Deserialize<'de> for Ipv4Address {
         use serde::de::Error;
         use serde::de::Visitor;
         struct Ipv4Visitor {}
-        impl<'de> Visitor<'de> for Ipv4Visitor
-        {
+        impl<'de> Visitor<'de> for Ipv4Visitor {
             type Value = Ipv4Address;
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("Ipv4Address")
@@ -480,11 +476,9 @@ impl<'de> Deserialize<'de> for Ipv4Address {
             }
         }
 
-        return Ok(deserializer.deserialize_str(Ipv4Visitor {
-        })?);
+        return Ok(deserializer.deserialize_str(Ipv4Visitor {})?);
     }
 }
-
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseIpv4AddressError;
@@ -642,7 +636,6 @@ impl Serialize for dyn Layer {
     }
 }
 */
-
 
 impl LayerStack {
     pub fn gg<T: Layer + Clone>(layer: Box<dyn Layer>) -> T {
