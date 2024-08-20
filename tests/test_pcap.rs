@@ -198,6 +198,6 @@ pub fn test_pcap_dhcp() {
     for d in packets {
         // println!("p: {:02x?}", &d);
         let p = Ether!().decode(&d).unwrap().0;
-        println!("p_decoded: {:#02x?}", &p);
+        println!("p_decoded: {:02x?}", &p);
     }
 }
