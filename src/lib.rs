@@ -1,4 +1,7 @@
 //use std::any::Any;
+use serde::{Serialize, Deserialize, Serializer};
+
+
 
 #[macro_use]
 extern crate doc_comment;
@@ -173,6 +176,21 @@ pub enum Value<T> {
     Set(T),
 }
 
+impl<T: Serialize> Serialize for Value <T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let data = &self;
+        match data {
+           Value::Auto => serializer.serialize_str("<auto>"),
+           Value::Random => serializer.serialize_str("<random>"),
+           Value::Func(f) => panic!("Serializing functions is not supported"),
+           Value::Set(v) => v.serialize(serializer),
+        }
+    }
+}
+
 impl<T: Clone + std::default::Default> Value<T>
 where
     Standard: Distribution<T>,
@@ -265,6 +283,16 @@ impl Default for MacAddr {
 impl MacAddr {
     pub fn new(o1: u8, o2: u8, o3: u8, o4: u8, o5: u8, o6: u8) -> Self {
         MacAddr(mac_address::MacAddress::new([o1, o2, o3, o4, o5, o6]))
+    }
+}
+
+impl Serialize for MacAddr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+      let s = format!("{}", self.0);
+      serializer.serialize_str(&s)
     }
 }
 

@@ -565,6 +565,7 @@ dependencies = [
  "pcap-parser",
  "rand",
  "scarust-derive",
+ "serde",
  "typenum",
 ]
 

@@ -1,6 +1,8 @@
 use crate::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize)]
 #[nproto(register(ETHERTYPE_LAYERS, Ethertype = 0x0806))]
 pub struct Arp {
     #[nproto(default = 1)]
@@ -78,6 +80,19 @@ impl Decode for ArpHardwareAddress {
     }
 }
 
+impl Serialize for ArpHardwareAddress {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Ether(x) => x.serialize(serializer),
+            Self::Bytes(b) => b.to_vec().serialize(serializer),
+        }
+    }
+}
+
+
 impl Distribution<ArpHardwareAddress> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ArpHardwareAddress {
         ArpHardwareAddress::Ether(MacAddr::new(
@@ -131,6 +146,21 @@ impl Encode for ArpProtocolAddress {
         }
     }
 }
+
+impl Serialize for ArpProtocolAddress {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::IP(x) => (*x).0.serialize(serializer),
+            Self::Bytes(b) => b.to_vec().serialize(serializer),
+        }
+    }
+}
+
+
+
 
 // FIXME: take into account the plen from packet
 impl Decode for ArpProtocolAddress {
