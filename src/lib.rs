@@ -533,7 +533,7 @@ impl LayerStack {
         };
         for (i, ll) in (&target.layers).into_iter().enumerate().rev() {
             out.curr_idx = i;
-            println!("{}: {:?}", i, &ll);
+            // println!("{}: {:?}", i, &ll);
             let ev = ll.encode(&target, i, &out);
             out.data.push(ev);
         }
