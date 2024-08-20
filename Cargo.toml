@@ -20,11 +20,11 @@ doc-comment = "*"
 serde = { version = "1.0", features = ["derive"] }
 
 
-
 [dev-dependencies]
 criterion = "0.3"
 pcap-parser = "*"
 hex = "*"
+serde_json = { version = "1.0" }
 
 
 [[bench]]

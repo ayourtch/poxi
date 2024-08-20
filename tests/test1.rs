@@ -2,10 +2,12 @@ use scarust::Value::Random;
 use scarust::*;
 #[macro_use]
 extern crate scarust_derive;
+use serde_json;
+use serde::{Serialize};
 
 use scarust::protocols::all::*;
 
-#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq)]
+#[derive(FromStringHashmap, NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct testProto {
     #[nproto(default = 4, encode = Skip)]
     pub version: Value<u8>,
@@ -17,6 +19,13 @@ pub struct testProto {
     pub mac3: Value<MacAddr>,
     #[nproto(default = Random)]
     pub id: Value<u16>,
+}
+
+#[test]
+fn serialize_1() {
+  let tp = IP!(); // TestProto!();
+  let j = serde_json::to_string(&tp).unwrap();
+  eprintln!("JSON: {}", j);
 }
 
 #[test]

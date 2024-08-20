@@ -566,6 +566,7 @@ dependencies = [
  "rand",
  "scarust-derive",
  "serde",
+ "serde_json",
  "typenum",
 ]
 

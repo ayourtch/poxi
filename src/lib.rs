@@ -425,6 +425,17 @@ impl Ipv4Address {
     }
 }
 
+impl Serialize for Ipv4Address {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+      let s = format!("{}", self.0);
+      serializer.serialize_str(&s)
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseIpv4AddressError;
 
