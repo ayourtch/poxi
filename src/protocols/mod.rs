@@ -3,6 +3,7 @@ pub mod bootp;
 pub mod dot1q;
 pub mod erspan;
 pub mod ether;
+pub mod geneve;
 pub mod gre;
 pub mod ip;
 pub mod pcap_file;
