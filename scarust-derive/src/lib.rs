@@ -133,6 +133,29 @@ impl ToTokens for EncodeNetprotoStructField {
 
 impl ToTokens for DecodeNetprotoStructField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use proc_macro2::{Punct, Spacing, TokenStream, TokenTree};
+
+        fn insert_double_colon_if_second_is_angle_bracket(mut tokens: TokenStream) -> TokenStream {
+            let mut token_vec: Vec<TokenTree> = tokens.into_iter().collect();
+
+            if token_vec.len() > 1 {
+                if let TokenTree::Punct(ref punct) = token_vec[1] {
+                    if punct.as_char() == '<' {
+                        // Create '::' token sequence
+                        let first_colon = Punct::new(':', Spacing::Joint);
+                        let second_colon = Punct::new(':', Spacing::Alone);
+
+                        // Insert '::' after the first token
+                        token_vec.insert(1, TokenTree::Punct(first_colon));
+                        token_vec.insert(2, TokenTree::Punct(second_colon));
+                    }
+                }
+            }
+
+            // Convert Vec<TokenTree> back to TokenStream
+            token_vec.into_iter().collect()
+        }
+
         let name = self.0.name.clone();
         let varname = Ident::new(&format!("__{}", &name), Span::call_site());
         let conv = self.0.conv.clone();
@@ -144,6 +167,7 @@ impl ToTokens for DecodeNetprotoStructField {
         } else {
             typ.clone()
         };
+        let fixed_typ = insert_double_colon_if_second_is_angle_bracket(fixed_typ);
         let get_def_X = Ident::new(&format!("get_default_{}", &name), Span::call_site());
         let set_X = Ident::new(&format!("set_{}", &name), Span::call_site());
 
