@@ -25,9 +25,12 @@ pub struct testProto {
 
 #[test]
 fn serialize_1() {
-    let tp = IP!() / UDP!(); // TestProto!();
+    let tp = Ether!() / IP!(src = "192.0.2.1") / UDP!() / TestProto!();
     let j = serde_json::to_string(&tp).unwrap();
     eprintln!("JSON: {}", j);
+    let p: LayerStack = serde_json::from_str(&j).unwrap();
+    eprintln!("deserialized: {:?}", &p);
+    assert_eq!(tp.layers.len(), p.layers.len());
 }
 
 #[test]

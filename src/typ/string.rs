@@ -12,6 +12,7 @@ use generic_array::{ArrayLength, GenericArray};
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt;
+use std::str::FromStr;
 use std::str::Utf8Error;
 /*
 use serde::de::Error;
@@ -88,6 +89,14 @@ impl<N: ArrayLength> TryFrom<&str> for FixedSizeString<N> {
 
             Ok(FixedSizeString(out))
         }
+    }
+}
+
+impl<N: ArrayLength> FromStr for FixedSizeString<N> {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
     }
 }
 

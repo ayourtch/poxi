@@ -61,6 +61,15 @@ impl Into<u8> for ErspanType {
     }
 }
 
+impl FromStr for ErspanType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // FIXME: implement properly
+        Ok(ErspanType::Type1)
+    }
+}
+
 impl Distribution<ErspanType> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ErspanType {
         let r: u8 = rng.gen();
