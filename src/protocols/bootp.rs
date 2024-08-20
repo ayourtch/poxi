@@ -1,22 +1,22 @@
 use crate::typ::string::*;
 use crate::*;
 use serde::{Deserialize, Serialize};
-use strum::{Display, FromRepr};
+// use strum::{Display};
 use typenum::{U128, U16, U60, U64}; // FixedSizeString;
-/*
- * Bootp encapsulation
- */
+                                    /*
+                                     * Bootp encapsulation
+                                     */
 
 const DHCP_COOKIE_VAL: u32 = 0x63825363;
 
-#[derive(FromRepr, Display, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(FromRepr, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[repr(u8)]
 enum VendorOptions {
     Pad = 0,
     End = 255,
 }
 
-#[derive(FromRepr, Display, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(FromRepr, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[repr(u8)]
 enum DhcpOption {
     End = 255,                                     // 255 - no length
@@ -90,7 +90,7 @@ impl Default for DhcpOption {
     }
 }
 
-#[derive(FromRepr, Display, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(FromRepr, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum DhcpMessageType {
     DhcpDiscover = 1,
@@ -130,7 +130,7 @@ fn decode_dhcp_opts<D: Decoder>(buf: &[u8], me: &mut Dhcp) -> Option<(Vec<DhcpOp
                 break;
             }
             x => {
-	        // FIXME: this only fills with "default" value
+                // FIXME: this only fills with "default" value
                 if let Some(o) = DhcpOption::from_repr(x) {
                     out.push(o);
                     ci += 2 + buf[ci + 1] as usize;
@@ -153,11 +153,11 @@ fn encode_dhcp_opts<E: Encoder>(
     vec![]
 }
 
+#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[nproto(register(UDP_DST_PORT_APPS, DstPort = 67))]
 #[nproto(register(UDP_SRC_PORT_APPS, SrcPort = 67))]
 #[nproto(register(UDP_DST_PORT_APPS, DstPort = 68))]
 #[nproto(register(UDP_SRC_PORT_APPS, SrcPort = 68))]
-#[derive(NetworkProtocol, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Bootp {
     #[nproto(default = 0x01)] // "Request" by default
     pub op: Value<u8>,

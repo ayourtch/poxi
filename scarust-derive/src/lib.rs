@@ -1370,6 +1370,32 @@ fn netproto_struct_fields(default_encoder: &TokenStream, data: &Data) -> Vec<Net
     out
 }
 
+fn debug_print_generated(ast: &DeriveInput, toks: &TokenStream) {
+    let debug = std::env::var("STRUM_DEBUG");
+    if let Ok(s) = debug {
+        if s == "1" {
+            println!("{}", toks);
+        }
+
+        if ast.ident == s {
+            println!("{}", toks);
+        }
+    }
+}
+
+// The enum logic from https://github.com/Peternator7/strum/tree/master
+
+mod from_repr;
+
+#[proc_macro_derive(FromRepr)]
+pub fn from_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+
+    let toks = from_repr::from_repr_inner(&ast).unwrap_or_else(|err| err.to_compile_error());
+    debug_print_generated(&ast, &toks);
+    toks.into()
+}
+
 #[test]
 fn test_fancy_repetition() {
     let foo = vec!["a", "b"];

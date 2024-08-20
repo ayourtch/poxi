@@ -19,7 +19,6 @@ typenum = "*"
 doc-comment = "*"
 serde = { version = "1.0", features = ["derive"] }
 typetag = "*"
-strum = { version = "0.26", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.3"
