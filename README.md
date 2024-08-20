@@ -185,3 +185,18 @@ if let Some(arp) = sca.get_layer(ARP!()) {
 }
 ```
 
+# Serde support
+
+The LayerStack struct types also implement Serialize/Deserialize, which rather easily allows to transform the parsed packets into other formats:
+
+```
+cargo run --example pcap2json -- pcap/pcap_3pkts.pcap
+
+[
+[{"layertype":"ether","dst":"52:54:00:12:34:56","src":"52:55:C0:A8:4C:02","etype":2048},{"layertype":"Ip","version":4,"ihl":5,"tos":0,"len":64,"id":6745,"flags":"<auto>","frag":0,"ttl":64,"proto":6,"chksum":61441,"src":"34.117.65.55","dst":"192.168.76.9","options":[]},{"layertype":"Tcp","sport":443,"dport":45434,"seq":2175235866,"ack":2451051129,"dataofs":5,"reserved":0,"flags":24,"window":65535,"chksum":24678,"urgptr":0},{"layertype":"raw","data":[23,3,3,0,19,247,152,107,69,171,239,142,50,92,237,67,35,181,108,233,5,164,220,228]}]
+,
+[{"layertype":"ether","dst":"52:55:C0:A8:4C:02","src":"52:54:00:12:34:56","etype":2048},{"layertype":"Ip","version":4,"ihl":5,"tos":0,"len":68,"id":46601,"flags":"<auto>","frag":16384,"ttl":64,"proto":6,"chksum":5197,"src":"192.168.76.9","dst":"34.117.65.55","options":[]},{"layertype":"Tcp","sport":45434,"dport":443,"seq":2451051129,"ack":2175235890,"dataofs":5,"reserved":0,"flags":24,"window":64022,"chksum":28820,"urgptr":0},{"layertype":"raw","data":[23,3,3,0,23,108,26,140,220,166,254,44,127,234,58,190,139,209,170,56,20,50,33,1,108,25,82,161]}]
+,
+[{"layertype":"ether","dst":"52:54:00:12:34:56","src":"52:55:C0:A8:4C:02","etype":2048},{"layertype":"Ip","version":4,"ihl":5,"tos":0,"len":40,"id":6746,"flags":"<auto>","frag":0,"ttl":64,"proto":6,"chksum":61464,"src":"34.117.65.55","dst":"192.168.76.9","options":[]},{"layertype":"Tcp","sport":443,"dport":45434,"seq":2175235890,"ack":2451051157,"dataofs":5,"reserved":0,"flags":16,"window":65535,"chksum":61113,"urgptr":0},{"layertype":"raw","data":[0,0,0,0,0,0]}]
+]
+```
