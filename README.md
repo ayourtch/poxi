@@ -1,6 +1,6 @@
-# scarust
+# Poxi
 
-ScaRust (pronounced "scar[i]est") is a packet parsing/creation framework heavily inspired by the venerable Scapy.
+Poxi (from Packet OXIde) is a packet parsing/creation framework heavily inspired by the venerable Scapy.
 
 The focus, much like the Scapy's, is a very flexible packet manipulation
 without too much of the paperwork. As a result, it is entirely possible to create
