@@ -29,11 +29,11 @@ typetag = "*"
 md-5 = "0.10"
 sha1 = "0.10"
 hmac = "0.12"
-aes = "0.8"
-des = "*"
-cbc = "*"
-cipher = "0.4"
-cfb-mode = "*"
+aes = "=0.8.4"
+des = "=0.8.1"
+cbc = { version = "=0.1.2", features = ["block-padding"] }
+cipher = { version = "=0.4.4", features = ["block-padding"] }
+cfb-mode = "=0.8.2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
