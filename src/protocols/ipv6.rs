@@ -24,14 +24,19 @@ fn encode_ipv6_length<E: Encoder>(
     encoded_layers: &EncodingVecVec,
 ) -> Vec<u8> {
     use std::convert::TryInto;
-    let mut payload_len: usize = 0;
+    let len: u16 = match me.payload_length {
+        Value::Auto => {
+            let mut payload_len: usize = 0;
+            for i in my_index + 1..encoded_layers.len() {
+                payload_len += encoded_layers[i].len();
+            }
+            payload_len.try_into().unwrap()
+        }
+        Value::Set(x) => x,
+        Value::Func(f) => f(),
+        Value::Random => panic!("Should not happen"),
+    };
 
-    // Sum up the length of all layers after IPv6 header
-    for i in my_index + 1..encoded_layers.len() {
-        payload_len += encoded_layers[i].len();
-    }
-
-    let len: u16 = payload_len.try_into().unwrap();
     len.encode::<E>()
 }
 

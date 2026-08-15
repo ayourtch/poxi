@@ -117,6 +117,38 @@ fn make_udp_checksum_payload() {
 }
 
 #[test]
+fn preserve_explicit_udp_length() {
+    let packet = IP!() / UDP!(len = 12, chksum = 0) / "12345678".to_string();
+    let encoded = packet.lencode();
+
+    assert_eq!(&encoded[24..26], &12u16.to_be_bytes());
+}
+
+#[test]
+fn calculate_automatic_udp_length() {
+    let packet = IP!() / UDP!(chksum = 0) / "12345678".to_string();
+    let encoded = packet.lencode();
+
+    assert_eq!(&encoded[24..26], &16u16.to_be_bytes());
+}
+
+#[test]
+fn preserve_explicit_ipv6_payload_length() {
+    let packet = IPV6!(payload_length = 4) / "12345678".to_string();
+    let encoded = packet.lencode();
+
+    assert_eq!(&encoded[4..6], &4u16.to_be_bytes());
+}
+
+#[test]
+fn calculate_automatic_ipv6_payload_length() {
+    let packet = IPV6!() / "12345678".to_string();
+    let encoded = packet.lencode();
+
+    assert_eq!(&encoded[4..6], &8u16.to_be_bytes());
+}
+
+#[test]
 fn make_geneve() {
     use oside::protocols::geneve::Geneve;
     let x = Ether!()

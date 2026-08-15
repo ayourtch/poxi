@@ -29,13 +29,19 @@ fn encode_udp_len<E: Encoder>(
     encoded_data: &EncodingVecVec,
 ) -> Vec<u8> {
     use std::convert::TryInto;
-    let mut data_len: usize = 0;
-
-    for i in my_index + 1..encoded_data.len() {
-        data_len += encoded_data[i].len();
-    }
-    data_len += 8; // UDP HDR
-    let len: u16 = data_len.try_into().unwrap();
+    let len: u16 = match me.len {
+        Value::Auto => {
+            let mut data_len: usize = 0;
+            for i in my_index + 1..encoded_data.len() {
+                data_len += encoded_data[i].len();
+            }
+            data_len += 8; // UDP HDR
+            data_len.try_into().unwrap()
+        }
+        Value::Set(x) => x,
+        Value::Func(f) => f(),
+        Value::Random => panic!("Should not happen"),
+    };
 
     len.encode::<E>()
 }
